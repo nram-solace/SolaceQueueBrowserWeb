@@ -54,6 +54,7 @@ export class ApiClient {
     formParams, bodyParam, authNames, contentTypes, accepts, returnType) {
     
     const { fetch } = http;
+    console.log('🌐 Using fetch:', typeof fetch, fetch?.name || 'unknown');
     const url = this.buildUrl(path, pathParams)
     const urlParams = new URLSearchParams(this.normalizeParams(queryParams));
 
