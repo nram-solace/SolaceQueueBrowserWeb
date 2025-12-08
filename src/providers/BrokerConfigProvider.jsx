@@ -144,6 +144,22 @@ export function useBrokerConfig() {
       } else {
         console.error(err);
         const errMsg = err.toString();
+        const errorData = err.data || err.response?.body || {};
+        const isCorsError = errorData?.meta?.error?.corsError || 
+                          errMsg.includes('CORS') ||
+                          errMsg.includes('Cross-Origin') ||
+                          errMsg.includes('NetworkError');
+        
+        if (isCorsError) {
+          return { 
+            result: { connected: false, replay: false}, 
+            message: { 
+              severity:'error', 
+              summary: 'SEMP: CORS Error', 
+              detail: 'Browser blocked the request due to CORS policy. If running in web mode, ensure the Vite dev server proxy is working. Otherwise, run the app through Tauri (npm run tauri dev) to bypass CORS restrictions.' 
+            }
+          };
+        }
         
         if (
           errMsg.includes('Invalid URL') ||

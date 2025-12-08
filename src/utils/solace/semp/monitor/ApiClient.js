@@ -122,31 +122,174 @@ export class ApiClient {
     console.debug(`${httpMethod} ${url}`, args);
     const { username, password } = this.authentications.basicAuth;
 
-    const resp = await fetch(urlParams.size ? `${url}?${urlParams}` : url, {
-      method: httpMethod,
-      headers: {
-        'Authorization': `Basic ${btoa(`${username}:${password}`)}`
-      },
-      body: bodyParam ? JSON.stringify(bodyParam) : undefined,
-    });
+    if (!username || !password) {
+      throw new Error('SEMP authentication credentials not configured');
+    }
+
+    const fullUrl = urlParams.size ? `${url}?${urlParams}` : url;
+    
+    // Detect if we're in browser mode (not Tauri)
+    const isBrowserMode = typeof window !== 'undefined' && 
+      (window.__TAURI__ === undefined && 
+       window.top?.__TAURI__ === undefined && 
+       window.__TAURI_INTERNALS__ === undefined);
+    
+    // In browser mode, route through Vite proxy to bypass CORS
+    let requestUrl = fullUrl;
+    let requestHeaders = {
+      'Authorization': `Basic ${btoa(`${username}:${password}`)}`,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    };
+    
+    if (isBrowserMode) {
+      // Extract path from full URL for proxy
+      try {
+        const urlObj = new URL(fullUrl);
+        const proxyPath = urlObj.pathname + (urlObj.search || '');
+        requestUrl = `/api/semp-proxy${proxyPath}`;
+        // Pass original target URL in header for proxy to use
+        requestHeaders['X-Semp-Target'] = `${urlObj.protocol}//${urlObj.host}`;
+        console.log(`🌐 Browser mode: routing through proxy`);
+        console.log(`   Original: ${fullUrl}`);
+        console.log(`   Proxy: ${requestUrl}`);
+      } catch (e) {
+        console.warn('⚠️ Failed to parse URL for proxy, using direct request:', e);
+      }
+    }
+    
+    console.log(`🔗 SEMP Request: ${httpMethod} ${fullUrl}`);
+    
+    let resp;
+    try {
+      resp = await fetch(requestUrl, {
+        method: httpMethod,
+        headers: requestHeaders,
+        body: bodyParam ? JSON.stringify(bodyParam) : undefined,
+      });
+    } catch (err) {
+      console.error('❌ SEMP fetch network error:', err);
+      const errorMsg = err.message || err.toString() || 'Network error';
+      
+      // Detect CORS errors specifically
+      const isCorsError = errorMsg.includes('CORS') || 
+                         errorMsg.includes('Cross-Origin') ||
+                         errorMsg.includes('NetworkError') ||
+                         errorMsg.includes('Failed to fetch') ||
+                         (errorMsg.includes('fetch') && !errorMsg.includes('SEMP'));
+      
+      if (isCorsError && !isBrowserMode) {
+        // Only show CORS error if we're not in browser mode (shouldn't happen with proxy)
+        console.error('🚫 CORS Error Detected!');
+        console.error('   The browser is blocking the SEMP request due to CORS policy.');
+        console.error('   This should not happen with the proxy enabled.');
+      }
+      
+      const corsHint = isCorsError 
+        ? ' (CORS blocked - run app through Tauri: npm run tauri dev)'
+        : '';
+      
+      throw {
+        status: 0,
+        data: { 
+          meta: { 
+            error: { 
+              description: errorMsg + corsHint, 
+              status: 'FAILURE',
+              corsError: isCorsError
+            } 
+          } 
+        },
+        response: {
+          status: 0,
+          body: { 
+            meta: { 
+              error: { 
+                description: errorMsg + corsHint, 
+                status: 'FAILURE',
+                corsError: isCorsError
+              } 
+            } 
+          }
+        }
+      };
+    }
 
     args.response = resp;
 
-    const data = await resp.json();
-    const { status, ...rest } = resp;
+    // Tauri fetch response structure: check for status property
+    const status = resp.status !== undefined ? resp.status : (resp.statusCode || 0);
+    const ok = resp.ok !== undefined ? resp.ok : (status >= 200 && status < 300);
+
+    console.log(`📥 SEMP Response: ${status} ${ok ? 'OK' : 'ERROR'}`);
+
+    let data;
+    try {
+      // Get response as text first (can be converted to JSON if needed)
+      // Note: Once text() is called, json() cannot be called on the same response
+      const text = await resp.text();
+      
+      if (text && text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch (parseErr) {
+          // If not JSON (e.g., HTML error page), create structured error
+          console.warn('⚠️ SEMP response is not JSON:', text.substring(0, 200));
+          data = { 
+            meta: { 
+              error: { 
+                description: `Server returned non-JSON response (status ${status})`, 
+                status: 'FAILURE',
+                code: status
+              } 
+            } 
+          };
+        }
+      } else {
+        // Empty response
+        if (ok) {
+          data = null;
+        } else {
+          data = { 
+            meta: { 
+              error: { 
+                description: `Empty response (status ${status})`, 
+                status: 'FAILURE',
+                code: status
+              } 
+            } 
+          };
+        }
+      }
+    } catch (err) {
+      console.error('❌ SEMP response parsing error:', err);
+      data = { 
+        meta: { 
+          error: { 
+            description: `Failed to parse response: ${err.message}`, 
+            status: 'FAILURE',
+            code: status
+          } 
+        } 
+      };
+    }
+
     const result = {
       status,
       data,
       response: {
         status,
         body: data,
-        ...rest
+        ok
       }
     };
 
-    if(!resp.ok) {
+    if (!ok) {
+      console.error(`❌ SEMP API error (${status}):`, JSON.stringify(data, null, 2));
       throw result;
     }
+    
+    console.log(`✅ SEMP API success (${status})`);
     return result;
   }
 
