@@ -242,6 +242,9 @@ class BaseBrowser {
       const { data: msgMetaData } = await this.sempClient
         .getMsgVpnReplayLogMsgs(this.vpn, this.replayLogName, { cursor, count: 2 });
       const [, nextOldestMessage] = msgMetaData;
+      if (!nextOldestMessage?.replicationGroupMsgId) {
+        throw new Error('No suitable RGMID found');
+      }
       return ({
         afterMsg: nextOldestMessage.replicationGroupMsgId
       });
@@ -293,13 +296,18 @@ class BaseBrowser {
   }
 
   merge({ messages, msgMetaData }) {
-    const messageIdx = new Map(msgMetaData.map(meta => ([meta.replicationGroupMsgId, { meta }])));
+    const messageIdx = new Map(msgMetaData.map(meta => ([meta.replicationGroupMsgId, { meta, headers: {}, userProperties: {}, payload: '' }])));
     messages.forEach(msg => {
+      const replicationGroupMsgId = msg.getReplicationGroupMessageId()?.toString();
+      if (!replicationGroupMsgId) {
+        return; // Skip messages without RGMID
+      }
+      
       const msgObj = {
-        payload: msg.getSdtContainer()?.getValue() || msg.getBinaryAttachment().toString(),
+        payload: msg.getSdtContainer()?.getValue() || msg.getBinaryAttachment()?.toString() || '',
         headers: {
-          destination: msg.getDestination().getName(),
-          replicationGroupMsgId: msg.getReplicationGroupMessageId().toString(),
+          destination: msg.getDestination()?.getName() || '',
+          replicationGroupMsgId: replicationGroupMsgId,
           guaranteedMessageId: msg.getGuaranteedMessageId()?.low,
           applicationMessageId: msg.getApplicationMessageId(),
           applicationMessageType: msg.getApplicationMessageType(),
@@ -314,9 +322,15 @@ class BaseBrowser {
           return [key, msg.getUserPropertyMap().getField(key).getValue()]
         }))
       };
-      const metaData = messageIdx.get(msgObj.headers.replicationGroupMsgId);
+      const metaData = messageIdx.get(replicationGroupMsgId);
       if (metaData) {
         Object.assign(metaData, msgObj);
+      } else {
+        // Message exists but no metadata - add it with minimal structure
+        messageIdx.set(replicationGroupMsgId, {
+          meta: { replicationGroupMsgId },
+          ...msgObj
+        });
       }
     });
     return [...messageIdx.values()];

@@ -70,7 +70,11 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   }
 
   const formatDateTime = (message) => {
-    const spooledEpoc = message.meta.spooledTime * 1000;
+    const spooledTime = message.meta?.spooledTime;
+    if (!spooledTime) {
+      return 'Not Available';
+    }
+    const spooledEpoc = spooledTime * 1000;
     const tzOffset = new Date(spooledEpoc).getTimezoneOffset() * 60000;
     return new Date(spooledEpoc - tzOffset).toISOString().replace('T', ' ').slice(0, 19);
   }
@@ -129,8 +133,8 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
           >
             <Column body={messageStatus} />
             <Column field="meta.msgId" header="Message ID" />
-            <Column field="headers.applicationMessageId" header="Application Message ID" body ={(rowData) => rowData.headers.applicationMessageId ?? 'Not Available' }/>
-            <Column field="headers.applicationMessageType" header="Application Message Type" body ={(rowData) => rowData.headers.applicationMessageType ?? 'Not Available' } />
+            <Column field="headers.applicationMessageId" header="Application Message ID" body ={(rowData) => rowData.headers?.applicationMessageId ?? 'Not Available' }/>
+            <Column field="headers.applicationMessageType" header="Application Message Type" body ={(rowData) => rowData.headers?.applicationMessageType ?? 'Not Available' } />
             <Column body={formatDateTime} header="Spooled Time" />
             <Column field="meta.attachmentSize" header="Attachment Size (B)" />
           </DataTable>
