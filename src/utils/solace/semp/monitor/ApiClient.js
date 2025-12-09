@@ -134,7 +134,10 @@ export class ApiClient {
        window.top?.__TAURI__ === undefined && 
        window.__TAURI_INTERNALS__ === undefined);
     
-    // In browser mode, route through Vite proxy to bypass CORS
+    // Detect if we're in development mode (proxy only available in dev)
+    const isDevelopment = import.meta.env.DEV;
+    
+    // In browser mode, route through Vite proxy to bypass CORS (only in development)
     let requestUrl = fullUrl;
     let requestHeaders = {
       'Authorization': `Basic ${btoa(`${username}:${password}`)}`,
@@ -142,20 +145,25 @@ export class ApiClient {
       'Accept': 'application/json'
     };
     
-    if (isBrowserMode) {
-      // Extract path from full URL for proxy
+    if (isBrowserMode && isDevelopment) {
+      // Extract path from full URL for proxy (only in development)
       try {
         const urlObj = new URL(fullUrl);
         const proxyPath = urlObj.pathname + (urlObj.search || '');
         requestUrl = `/api/semp-proxy${proxyPath}`;
         // Pass original target URL in header for proxy to use
         requestHeaders['X-Semp-Target'] = `${urlObj.protocol}//${urlObj.host}`;
-        console.log(`🌐 Browser mode: routing through proxy`);
+        console.log(`🌐 Browser mode (dev): routing through proxy`);
         console.log(`   Original: ${fullUrl}`);
         console.log(`   Proxy: ${requestUrl}`);
       } catch (e) {
         console.warn('⚠️ Failed to parse URL for proxy, using direct request:', e);
       }
+    } else if (isBrowserMode && !isDevelopment) {
+      // Production mode: make direct requests (broker must have CORS configured)
+      console.debug('🌐 Browser mode (production): making direct request to broker');
+      console.debug(`   URL: ${fullUrl}`);
+      console.debug(`   Note: Broker must allow CORS from this origin`);
     }
     
     console.log(`🔗 SEMP Request: ${httpMethod} ${fullUrl}`);

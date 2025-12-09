@@ -19,7 +19,10 @@ const createFetch = () => {
   if (tauriAvailable) {
     console.log('🔧 Tauri HTTP Plugin available');
   } else {
-    console.log('🌐 Using browser fetch API (Tauri not available - CORS may block cross-origin requests)');
+    // Only log in development - this is expected in browser environments
+    if (import.meta.env.DEV) {
+      console.debug('🌐 Using browser fetch API (Tauri not available - CORS may block cross-origin requests)');
+    }
   }
   
   // Return a wrapper function that tries Tauri first, falls back to browser
