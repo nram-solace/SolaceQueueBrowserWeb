@@ -161,9 +161,9 @@ export class ApiClient {
       }
     } else if (isBrowserMode && !isDevelopment) {
       // Production mode: make direct requests (broker must have CORS configured)
-      console.debug('🌐 Browser mode (production): making direct request to broker');
-      console.debug(`   URL: ${fullUrl}`);
-      console.debug(`   Note: Broker must allow CORS from this origin`);
+      console.log('🌐 Production mode: making direct request to broker');
+      console.log(`   URL: ${fullUrl}`);
+      console.log(`   Note: Broker must allow CORS from this origin`);
     }
     
     console.log(`🔗 SEMP Request: ${httpMethod} ${fullUrl}`);
