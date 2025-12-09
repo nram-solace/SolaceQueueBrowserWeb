@@ -8,11 +8,17 @@ import { Toolbar } from 'primereact/toolbar';
 import { confirmDialog } from 'primereact/confirmdialog';
 
 import { SOURCE_TYPE, BROWSE_MODE, SUPPORTED_BROWSE_MODES, MESSAGE_ORDER } from '../../hooks/solace';
+import { useSempApi } from '../../providers/SempClientProvider';
 
 import classes from './styles.module.css';
 
 export default function MessageListToolbar({ sourceDefinition, minTime, maxTime, onChange }) {
-  const { type: sourceType, sourceName, config: { id: brokerId } } = sourceDefinition;
+  const { type: sourceType, sourceName, config } = sourceDefinition;
+  const { id: brokerId } = config || {};
+
+  const sempApi = useSempApi();
+  const [messageCount, setMessageCount] = useState(null);
+  const [queueDetails, setQueueDetails] = useState(null);
 
   const [sourceLabel, browseModes] =
     (sourceType === SOURCE_TYPE.BASIC) ? [
@@ -85,6 +91,37 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     // trigger a refresh automatically when source has changed
     raiseOnChange(BROWSE_MODE.BASIC);
   }, [brokerId, sourceType, sourceName]);
+
+  // Fetch queue message count and details when a queue is selected
+  useEffect(() => {
+    const fetchQueueDetails = async () => {
+      // Only fetch for queue types (QUEUE or BASIC)
+      if ((sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC) && config && sourceName) {
+        try {
+          const response = await sempApi.getClient(config).getMsgVpnQueue(config.vpn, sourceName);
+          // The current message count is in collections.msgs.count
+          const count = response.collections?.msgs?.count ?? null;
+          setMessageCount(count);
+          
+          // Store queue details for the second line
+          if (response.data) {
+            setQueueDetails(response.data);
+          } else {
+            setQueueDetails(null);
+          }
+        } catch (err) {
+          console.error('Error fetching queue details:', err);
+          setMessageCount(null);
+          setQueueDetails(null);
+        }
+      } else {
+        setMessageCount(null);
+        setQueueDetails(null);
+      }
+    };
+
+    fetchQueueDetails();
+  }, [sourceType, sourceName, config, sempApi]);
 
   useEffect(() => {
     // Trigger refresh when browse mode changes, but skip TIME and MSGID modes
@@ -185,9 +222,78 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     raiseOnChange(browseMode);
   };
 
+  const formatNumber = (num) => {
+    if (num === null || num === undefined) return '0';
+    return num.toLocaleString('en-US');
+  };
+
+  const formatMegabytes = (mb) => {
+    if (mb === null || mb === undefined || mb === 0) return '0 MB';
+    if (mb < 1000) {
+      return `${mb.toFixed(2)} MB`;
+    }
+    // Convert to GB if >= 1000 MB
+    return `${(mb / 1000).toFixed(2)} GB`;
+  };
+
+  const calculateUtilization = (msgSpoolUsage, maxMsgSpoolUsage) => {
+    // msgSpoolUsage is in bytes (B), maxMsgSpoolUsage is in megabytes (MB)
+    if (!msgSpoolUsage || !maxMsgSpoolUsage || maxMsgSpoolUsage === 0) return '0';
+    // Convert msgSpoolUsage from bytes to MB using 1000, then calculate percentage
+    const msgSpoolUsageMB = msgSpoolUsage / (1000 * 1000);
+    const percent = (msgSpoolUsageMB / maxMsgSpoolUsage) * 100;
+    return percent.toFixed(1);
+  };
+
+  const displayTitle = () => {
+    if (!queueDetails || (sourceType !== SOURCE_TYPE.QUEUE && sourceType !== SOURCE_TYPE.BASIC)) {
+      return `${sourceLabel}: ${sourceName}`;
+    }
+
+    // Build suffix: PQ if partitions > 0, LVQ if size == 0
+    const suffixes = [];
+    const partitions = queueDetails.partitionCount ?? 0;
+    const maxSpoolUsage = queueDetails.maxMsgSpoolUsage ?? 0;
+    
+    if (partitions > 0) {
+      suffixes.push('PQ');
+    }
+    if (maxSpoolUsage === 0) {
+      suffixes.push('LVQ');
+    }
+    
+    const suffix = suffixes.length > 0 ? ` (${suffixes.join('|')})` : '';
+    return `${sourceLabel}: ${sourceName}${suffix}`;
+  };
+
+  const displayDetails = () => {
+    if (!queueDetails || (sourceType !== SOURCE_TYPE.QUEUE && sourceType !== SOURCE_TYPE.BASIC)) {
+      return null;
+    }
+
+    const count = messageCount ?? 0;
+    const spoolSize = queueDetails.maxMsgSpoolUsage ?? 0; // maxMsgSpoolUsage is in MB
+    const utilization = calculateUtilization(queueDetails.msgSpoolUsage, queueDetails.maxMsgSpoolUsage);
+    const owner = queueDetails.owner || 'N/A';
+    const permission = queueDetails.permission || 'N/A';
+    const accessType = queueDetails.accessType || 'N/A';
+    const partitions = queueDetails.partitionCount ?? 0;
+
+    return `${formatNumber(count)} messages | Size: ${formatMegabytes(spoolSize)} | Utilization: ${utilization}% | Owner: ${owner} | Permission: ${permission} | Type: ${accessType} | Partitions: ${partitions}`;
+  };
+
   return (
     <Toolbar className={classes.messageListToolbar}
-      start={() => <h3>{sourceLabel} | {sourceName}</h3>}
+      start={() => (
+        <div>
+          <h3>{displayTitle()}</h3>
+          {queueDetails && (sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC) && (
+            <div style={{ fontSize: '0.875rem', color: 'var(--text-color-secondary)', marginTop: '0.25rem' }}>
+              {displayDetails()}
+            </div>
+          )}
+        </div>
+      )}
       end={() =>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <label>Sort Order:</label>
