@@ -2,16 +2,19 @@ import { Panel } from 'primereact/panel';
 
 import classes from './styles.module.css';
 
-export default function ContentPanel({ title, toolbar, footer, children }) {
+export default function ContentPanel({ title, toolbar, footer, children, headerPrefix }) {
 
   const headerTemplate = (options) => {
     return (
-      <div className={options.className}>
-        <div>
-          <strong>{title}</strong>
-        </div>
-        <div>
-          {toolbar}
+      <div className={options.className} style={{ display: 'flex', flexDirection: 'column' }}>
+        {headerPrefix && <div className={classes.headerPrefix}>{headerPrefix}</div>}
+        <div className={classes.headerRow}>
+          <div>
+            <strong>{title}</strong>
+          </div>
+          <div>
+            {toolbar}
+          </div>
         </div>
       </div>
     );

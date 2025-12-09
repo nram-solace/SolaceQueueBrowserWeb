@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useBrokerConfig } from './providers/BrokerConfigProvider';
 import { useQueueBrowsing } from './hooks/solace';
+import { WINDOW_TITLE } from './config/version';
 
 import DesktopContainer from './components/DesktopContainer';
 import RootLayout from './components/RootLayout';
@@ -21,6 +22,10 @@ export default function App() {
   const [selectedMessage, setSelectedMessage] = useState({});
 
   const [browser, updateBrowser] = useQueueBrowsing();
+
+  useEffect(() => {
+    document.title = WINDOW_TITLE;
+  }, []);
 
   const handleSourceSelected = (source) => {
     setSelectedMessage({});

@@ -6,11 +6,20 @@ import { PrimeIcons } from 'primereact/api';
 
 import classes from './styles.module.css';
 import { useEffect, useState } from "react";
+import { APP_TITLE, WINDOW_TITLE } from '../../config/version';
 
 export default function TitleBar() {
   const [colorScheme, setColorScheme] = useState('light');
 
   const isColorSchemeDark = () => colorScheme === 'dark';
+
+  useEffect(() => {
+    // Set Tauri window title dynamically
+    if (window.top?.__TAURI__) {
+      const appWindow = getCurrentWebviewWindow();
+      appWindow.setTitle(WINDOW_TITLE);
+    }
+  }, []);
 
   const toggleTheme = () => {
     setColorScheme(prev => {
@@ -29,7 +38,7 @@ export default function TitleBar() {
   const AppTitle = () => {
     return (
       <>
-        <span style={{ paddingLeft: '1em' }}>Solace Queue Browser</span>
+        <span style={{ paddingLeft: '1em' }}>{APP_TITLE}</span>
       </>
     )
   }

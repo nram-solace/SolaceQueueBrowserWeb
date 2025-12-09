@@ -8,6 +8,7 @@ import BrokerConfigDialog from '../BrokerConfigDialog';
 import ReplayTopicDialog from '../ReplayTopicDialog';
 
 import { TopicIcon, LvqIcon, QueueIcon } from '../../icons';
+import { APP_TITLE } from '../../config/version';
 
 import classes from './styles.module.css';
 
@@ -184,7 +185,11 @@ export default function TreeView({ brokers, brokerEditor, onSourceSelected }) {
   };
 
   return (
-    <ContentPanel title="Broker Definitions" toolbar={<i className={`pi pi-plus ${classes.toolIcon}`} onClick={handleAddBrokerClick}></i>}>
+    <ContentPanel 
+      title="Event Brokers" 
+      headerPrefix={<div className={classes.versionHeader}>{APP_TITLE}</div>}
+      toolbar={<i className={`pi pi-plus ${classes.toolIcon}`} onClick={handleAddBrokerClick}></i>}
+    >
       <div className={classes.container}>
         <Tree value={nodes} className={classes.tree} nodeTemplate={nodeTemplate} selectionMode="single" loading={isLoading}
           onExpand={handleExpand} onSelect={handleSelect}

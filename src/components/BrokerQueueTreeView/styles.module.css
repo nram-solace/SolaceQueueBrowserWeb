@@ -53,3 +53,9 @@ i.toolIcon:hover {
   background-color: rgba(255, 255, 255, 0.06);
   color: rgba(255, 255, 255, 0.87);
 }
+
+.versionHeader {
+  font-size: 1.25rem;
+  font-weight: 600;
+  text-align: center;
+}
