@@ -22,3 +22,10 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+.cursor/**
+.claude/**
+.cursorrules
+.dev/**
+CLAUDE.md
+package-lock.json
+package-lock.json

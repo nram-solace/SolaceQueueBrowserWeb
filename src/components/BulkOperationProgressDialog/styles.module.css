@@ -1,0 +1,32 @@
+.dialog {
+  min-width: 400px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.statusText {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.progressBar {
+  height: 1.5rem;
+}
+
+.progressText {
+  font-size: 0.875rem;
+  color: var(--text-color-secondary);
+  text-align: center;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+

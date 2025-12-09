@@ -1,0 +1,75 @@
+.dialog {
+  min-width: 500px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background-color: var(--surface-ground);
+  border-radius: var(--border-radius);
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summaryLabel {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.summaryValue {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-color);
+}
+
+.summaryValue.success {
+  color: var(--green-500);
+}
+
+.summaryValue.error {
+  color: var(--red-500);
+}
+
+.summaryValue.warning {
+  color: var(--orange-500);
+}
+
+.accordionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.errorTable {
+  margin-top: 0.5rem;
+}
+
+.errorMessage {
+  color: var(--text-color);
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.successMessage {
+  background-color: var(--green-50);
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
