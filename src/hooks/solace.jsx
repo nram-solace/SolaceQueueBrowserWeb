@@ -249,7 +249,9 @@ class BaseBrowser {
         afterMsg: nextOldestMessage.replicationGroupMsgId
       });
     } catch (ex) {
-      console.warn('Unable to find a suitable RGMID to start from. Will replay from beginning of time.', ex);
+      // This is expected when replay log doesn't have the message yet (e.g., after move/delete operations)
+      // Fallback to replaying from beginning of time works correctly
+      console.debug('Unable to find a suitable RGMID to start from. Will replay from beginning of time.', ex);
       return {};
     }
   }

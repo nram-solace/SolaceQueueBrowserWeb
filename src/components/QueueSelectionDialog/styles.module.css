@@ -1,0 +1,20 @@
+.queueSelectionDialog {
+  /* Dialog styles */
+}
+
+.formField {
+  margin-bottom: 1.5rem;
+}
+
+.dropdown {
+  width: 100%;
+}
+
+.emptyMessage {
+  margin-top: 1rem;
+  padding: 1rem;
+  color: var(--text-color-secondary);
+  font-style: italic;
+  text-align: center;
+}
+
