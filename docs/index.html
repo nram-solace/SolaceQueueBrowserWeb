@@ -25,9 +25,11 @@
   <h1>Redirecting</h1>
   <main>You should be automatically redirected to the stable release. If not <a href="./stable/">click here.</a></main>
   <script>
-    if (window.location.pathname === '/solace-queue-browser/') {
+    // Redirect to latest if at root, or stable if available
+    const path = window.location.pathname;
+    if (path === '/SolaceQueueBrowserWeb/' || path === '/') {
       setTimeout(() => {
-        window.location.replace('./stable/');
+        window.location.replace('./latest/');
       }, 800);
     }
   </script>
