@@ -524,6 +524,22 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     ]
   });
 
+  const getRowClassName = (rowData) => {
+    if (!selectedMessage) {
+      return '';
+    }
+    
+    // Compare by replicationGroupMsgId first (more reliable), then fall back to msgId
+    const selectedId = selectedMessage.meta?.replicationGroupMsgId || selectedMessage.meta?.msgId;
+    const rowId = rowData.meta?.replicationGroupMsgId || rowData.meta?.msgId;
+    
+    if (selectedId && rowId && selectedId === rowId) {
+      return classes.selectedRow;
+    }
+    
+    return '';
+  };
+
   const ListHeader = () => {
     const hasSelection = selectedMessages.length > 0;
     const showCopyMove = type === SOURCE_TYPE.QUEUE || type === SOURCE_TYPE.BASIC;
@@ -910,6 +926,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
             dataKey="meta.replicationGroupMsgId"
             onSelectionChange={handleBulkSelection}
             onRowClick={handleRowClick}
+            rowClassName={getRowClassName}
             metaKeySelection={false}
             globalFilterFields={['filterField']}
             filters={filters}

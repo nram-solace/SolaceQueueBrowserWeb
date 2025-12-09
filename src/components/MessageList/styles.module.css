@@ -11,3 +11,13 @@
 .messageListTable :global(.p-datatable-wrapper) {
   flex: 1;
 }
+
+.selectedRow {
+  background-color: var(--primary-color) !important;
+  color: var(--primary-color-text) !important;
+}
+
+.selectedRow:hover {
+  background-color: var(--primary-color) !important;
+  opacity: 0.9;
+}
