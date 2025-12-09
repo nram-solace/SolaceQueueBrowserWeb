@@ -297,6 +297,70 @@ class BaseBrowser {
     }
   }
 
+  extractPayload(msg, expectedAttachmentSize = 0) {
+    // Original simple approach - try SDT container first, then binary attachment with toString()
+    // This preserves the original working behavior
+    const sdtValue = msg.getSdtContainer()?.getValue();
+    if (sdtValue !== null && sdtValue !== undefined) {
+      return sdtValue;
+    }
+
+    // Try binary attachment with original toString() approach
+    const binaryAttachment = msg.getBinaryAttachment();
+    if (binaryAttachment !== null && binaryAttachment !== undefined) {
+      // If it's already a string, return it
+      if (typeof binaryAttachment === 'string') {
+        return binaryAttachment;
+      }
+      
+      // Try the original toString() method first (this was working before)
+      try {
+        const str = binaryAttachment.toString();
+        // Only reject if it's clearly an object representation, not actual content
+        if (str && !str.startsWith('[object ')) {
+          return str;
+        }
+      } catch (e) {
+        // toString() failed, try enhanced decoding
+      }
+      
+      // Enhanced handling for binary types (ArrayBuffer, Uint8Array) - for STM feeds
+      // Only do this if toString() didn't work
+      if (binaryAttachment instanceof ArrayBuffer) {
+        try {
+          return new TextDecoder('utf-8', { fatal: false }).decode(binaryAttachment);
+        } catch (e) {
+          // Fall through to return empty
+        }
+      } else if (binaryAttachment instanceof Uint8Array) {
+        try {
+          return new TextDecoder('utf-8', { fatal: false }).decode(binaryAttachment);
+        } catch (e) {
+          // Fall through to return empty
+        }
+      } else if (Array.isArray(binaryAttachment)) {
+        try {
+          const uint8Array = new Uint8Array(binaryAttachment);
+          return new TextDecoder('utf-8', { fatal: false }).decode(uint8Array);
+        } catch (e) {
+          // Fall through to return empty
+        }
+      } else if (binaryAttachment.buffer && binaryAttachment.buffer instanceof ArrayBuffer) {
+        try {
+          return new TextDecoder('utf-8', { fatal: false }).decode(binaryAttachment.buffer);
+        } catch (e) {
+          // Fall through to return empty
+        }
+      }
+    } else if (expectedAttachmentSize > 0) {
+      // Log warning if we expected an attachment but didn't get one
+      console.warn(`WARNING: Metadata shows attachmentSize=${expectedAttachmentSize} but getBinaryAttachment() returned null/undefined. This may indicate queue browser limitation.`);
+    }
+
+    // No payload found - return empty string (original behavior)
+    return '';
+  }
+
   merge({ messages, msgMetaData }) {
     const messageIdx = new Map(msgMetaData.map(meta => ([meta.replicationGroupMsgId, { meta, headers: {}, userProperties: {}, payload: '' }])));
     messages.forEach(msg => {
@@ -305,8 +369,12 @@ class BaseBrowser {
         return; // Skip messages without RGMID
       }
       
+      // Get metadata to check attachment size
+      const metaData = messageIdx.get(replicationGroupMsgId);
+      const attachmentSize = metaData?.meta?.attachmentSize || 0;
+      
       const msgObj = {
-        payload: msg.getSdtContainer()?.getValue() || msg.getBinaryAttachment()?.toString() || '',
+        payload: this.extractPayload(msg, attachmentSize),
         headers: {
           destination: msg.getDestination()?.getName() || '',
           replicationGroupMsgId: replicationGroupMsgId,
@@ -324,7 +392,7 @@ class BaseBrowser {
           return [key, msg.getUserPropertyMap().getField(key).getValue()]
         }))
       };
-      const metaData = messageIdx.get(replicationGroupMsgId);
+      
       if (metaData) {
         Object.assign(metaData, msgObj);
       } else {
@@ -346,16 +414,28 @@ class LoggedMessagesReplayBrowser extends BaseBrowser {
   }
 
   async getPage(page) {
-    const { fromMsgId } = page || {};
+    const { fromMsgId, fromTime } = page || {};
     const { sourceName } = this.sourceDefinition;
     const count = this.pageSize;
 
-    const replayFrom = fromMsgId ? await this.getQueueReplayFrom({ messageId: fromMsgId }) : page;
+    // Determine replayFrom based on what's in the page parameter
+    let replayFrom;
+    if (fromMsgId) {
+      // MSGID mode: Try to convert message ID to RGMID for replay positioning
+      replayFrom = await this.getQueueReplayFrom({ messageId: fromMsgId });
+    } else if (fromTime !== undefined && fromTime !== null) {
+      // TIME mode: Use fromTime directly
+      replayFrom = { fromTime };
+    } else {
+      // No specific start point, use page as-is (might be empty object for beginning)
+      replayFrom = page || {};
+    }
+
     const { tempQueueName, messages, cleanupReplay } = await this.replayToTempQueue({ sourceName, replayFrom });
     const msgMetaData =
       await this.getMessageMetaData({
         queueName: tempQueueName,
-        fromMsgId,
+        fromMsgId: fromMsgId || null,
         direction: MESSAGE_ORDER.OLDEST,
         count
       });
@@ -371,7 +451,7 @@ class LoggedMessagesReplayBrowser extends BaseBrowser {
 
     this.nextPage =
       (tempQueue.spooledMsgCount > count) ? ({ fromMsgId: highestMsgId + 1 }) : null;
-    this.prevPages.push({ fromMsgId });
+    this.prevPages.push({ fromMsgId: fromMsgId || null });
 
     return this.merge({ messages, msgMetaData });
   }
