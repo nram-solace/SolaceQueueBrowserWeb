@@ -151,12 +151,16 @@ export function useBrokerConfig() {
                           errMsg.includes('NetworkError');
         
         if (isCorsError) {
+          const isProduction = !import.meta.env.DEV;
+          const origin = isProduction ? window.location.origin : 'your development server';
           return { 
             result: { connected: false, replay: false}, 
             message: { 
               severity:'error', 
               summary: 'SEMP: CORS Error', 
-              detail: 'Browser blocked the request due to CORS policy. If running in web mode, ensure the Vite dev server proxy is working. Otherwise, run the app through Tauri (npm run tauri dev) to bypass CORS restrictions.' 
+              detail: isProduction 
+                ? `Browser blocked the request due to CORS policy. The Solace broker must be configured to allow CORS from: ${origin}. Configure the broker's CORS settings to include this origin in the allowed origins list.`
+                : 'Browser blocked the request due to CORS policy. If running in web mode, ensure the Vite dev server proxy is working. Otherwise, run the app through Tauri (npm run tauri dev) to bypass CORS restrictions.'
             }
           };
         }

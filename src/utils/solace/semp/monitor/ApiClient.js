@@ -134,10 +134,17 @@ export class ApiClient {
        window.top?.__TAURI__ === undefined && 
        window.__TAURI_INTERNALS__ === undefined);
     
-    // Detect if we're in development mode (proxy only available in dev)
+    // Detect if we're in development mode (Vite proxy available)
     const isDevelopment = import.meta.env.DEV;
     
-    // In browser mode, route through Vite proxy to bypass CORS (only in development)
+    // Detect if we're on Vercel (has serverless proxy) or similar platform
+    // Vercel provides /api routes, so if we can make a request to /api, we're on Vercel
+    const hasServerlessProxy = typeof window !== 'undefined' && 
+      (window.location.hostname.includes('vercel.app') || 
+       window.location.hostname.includes('vercel.com') ||
+       import.meta.env.VITE_USE_PROXY === 'true'); // Allow manual override via env var
+    
+    // In browser mode, route through proxy to bypass CORS (dev or Vercel)
     let requestUrl = fullUrl;
     let requestHeaders = {
       'Authorization': `Basic ${btoa(`${username}:${password}`)}`,
@@ -145,25 +152,26 @@ export class ApiClient {
       'Accept': 'application/json'
     };
     
-    if (isBrowserMode && isDevelopment) {
-      // Extract path from full URL for proxy (only in development)
+    if (isBrowserMode && (isDevelopment || hasServerlessProxy)) {
+      // Extract path from full URL for proxy
       try {
         const urlObj = new URL(fullUrl);
         const proxyPath = urlObj.pathname + (urlObj.search || '');
         requestUrl = `/api/semp-proxy${proxyPath}`;
         // Pass original target URL in header for proxy to use
         requestHeaders['X-Semp-Target'] = `${urlObj.protocol}//${urlObj.host}`;
-        console.log(`🌐 Browser mode (dev): routing through proxy`);
+        const proxyType = isDevelopment ? 'dev (Vite)' : 'production (Vercel)';
+        console.log(`🌐 Browser mode (${proxyType}): routing through proxy`);
         console.log(`   Original: ${fullUrl}`);
         console.log(`   Proxy: ${requestUrl}`);
       } catch (e) {
         console.warn('⚠️ Failed to parse URL for proxy, using direct request:', e);
       }
-    } else if (isBrowserMode && !isDevelopment) {
-      // Production mode: make direct requests (broker must have CORS configured)
+    } else if (isBrowserMode && !isDevelopment && !hasServerlessProxy) {
+      // Production mode without proxy: make direct requests (broker must have CORS configured)
       console.log('🌐 Production mode: making direct request to broker');
       console.log(`   URL: ${fullUrl}`);
-      console.log(`   Note: Broker must allow CORS from this origin`);
+      console.log(`   Note: Broker must allow CORS from this origin, or deploy to Vercel to use proxy`);
     }
     
     console.log(`🔗 SEMP Request: ${httpMethod} ${fullUrl}`);
