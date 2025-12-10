@@ -160,10 +160,6 @@ export class ApiClient {
         requestUrl = `/api/semp-proxy${proxyPath}`;
         // Pass original target URL in header for proxy to use
         requestHeaders['X-Semp-Target'] = `${urlObj.protocol}//${urlObj.host}`;
-        const proxyType = isDevelopment ? 'dev (Vite)' : 'production (Vercel)';
-        console.log(`🌐 Browser mode (${proxyType}): routing through proxy`);
-        console.log(`   Original: ${fullUrl}`);
-        console.log(`   Proxy: ${requestUrl}`);
       } catch (e) {
         console.warn('⚠️ Failed to parse URL for proxy, using direct request:', e);
       }
@@ -173,8 +169,6 @@ export class ApiClient {
       console.log(`   URL: ${fullUrl}`);
       console.log(`   Note: Broker must allow CORS from this origin, or deploy to Vercel to use proxy`);
     }
-    
-    console.log(`🔗 SEMP Request: ${httpMethod} ${fullUrl}`);
     
     let resp;
     try {

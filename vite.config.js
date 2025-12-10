@@ -24,8 +24,6 @@ export default defineConfig(async () => ({
             // Get the path from the request URL (after /api/semp-proxy)
             const path = req.url.replace(/^\/api\/semp-proxy/, '') || '/';
 
-            console.log(`🔄 Proxying SEMP request: ${req.method} ${path} -> ${target}${path}`);
-
             // Create proxy middleware for this specific request
             const proxy = createProxyMiddleware({
               target,

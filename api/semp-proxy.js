@@ -5,13 +5,6 @@
  */
 
 export default async function handler(req, res) {
-  // Log request for debugging
-  console.log('🔍 Proxy handler called:', {
-    method: req.method,
-    url: req.url,
-    query: req.query
-  });
-
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -69,10 +62,6 @@ export default async function handler(req, res) {
     
     const fullPath = cleanPath + queryString;
     const targetUrl = `${targetHeader}${fullPath}`;
-
-    console.log(`🔄 Proxying SEMP request: ${req.method} ${fullPath}`);
-    console.log(`   Target: ${targetUrl}`);
-    console.log(`   Has Auth: ${!!req.headers.authorization}`);
 
     // Prepare headers for the broker request
     const brokerHeaders = {
@@ -179,7 +168,6 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Semp-Target');
 
     // Forward status and data
-    console.log(`✅ Proxy response: ${brokerResponse.status}`);
     return res.status(brokerResponse.status).json(responseData);
 
   } catch (error) {
