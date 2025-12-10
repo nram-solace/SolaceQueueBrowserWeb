@@ -5,6 +5,14 @@
  */
 
 export default async function handler(req, res) {
+  // Log request for debugging
+  console.log('🔍 Proxy handler called:', {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    headers: Object.keys(req.headers)
+  });
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -18,18 +26,25 @@ export default async function handler(req, res) {
     // Extract target URL from header
     const targetHeader = req.headers['x-semp-target'];
     if (!targetHeader) {
+      console.error('❌ Missing X-Semp-Target header');
       return res.status(400).json({ error: 'Missing X-Semp-Target header' });
     }
 
     // Get the path from Vercel's dynamic route parameter
     // The [...path] captures everything after /api/semp-proxy/
     const pathSegments = req.query.path || [];
-    const path = '/' + (Array.isArray(pathSegments) ? pathSegments.join('/') : pathSegments);
+    let path = '/';
     
-    // Get query string from original request URL
-    const url = new URL(req.url, `http://${req.headers.host}`);
-    const queryString = url.search;
-    const fullPath = queryString ? `${path}${queryString}` : path;
+    if (Array.isArray(pathSegments) && pathSegments.length > 0) {
+      path = '/' + pathSegments.join('/');
+    } else if (pathSegments && typeof pathSegments === 'string') {
+      path = '/' + pathSegments;
+    }
+    
+    // Get query string from original request
+    // req.url in Vercel includes the full path with query string
+    const queryString = req.url.includes('?') ? '?' + req.url.split('?').slice(1).join('?') : '';
+    const fullPath = path + queryString;
     
     // Construct full target URL
     const targetUrl = `${targetHeader}${fullPath}`;
