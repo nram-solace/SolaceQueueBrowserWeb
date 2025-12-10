@@ -1,6 +1,12 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/api/semp-proxy/:path*",
+      "destination": "/api/semp-proxy"
+    }
+  ],
   "headers": [
     {
       "source": "/api/(.*)",
