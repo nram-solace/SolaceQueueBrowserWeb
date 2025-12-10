@@ -3,6 +3,10 @@ import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 
 export default function MessageHeaderView({ message }) {
+  if (!message || message === null || message === undefined) {
+    return 'Please select a message.';
+  }
+  
   const { meta, headers, userProperties } = message;
   return (
     <JsonView src={ {meta, headers, userProperties} } theme="atom" dark="false" />

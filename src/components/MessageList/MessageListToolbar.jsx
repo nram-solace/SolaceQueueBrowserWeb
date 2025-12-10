@@ -64,6 +64,9 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     }
     // Only consider it partitioned if queueDetails match the current source
     // This prevents using stale queueDetails from a previous queue
+    if (queueDetails.queueName !== sourceName) {
+      return false;
+    }
     const partitions = queueDetails.partitionCount ?? 0;
     return partitions > 0;
   };
@@ -147,7 +150,13 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
   // Also trigger browsing when a non-partitioned queue is loaded
   useEffect(() => {
     if (queueDetails && (sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC)) {
+      // Ensure queue details match the current source to prevent stale data issues
+      if (queueDetails.queueName !== sourceName) {
+        return;
+      }
+
       const partitions = queueDetails.partitionCount ?? 0;
+      
       if (partitions > 0) {
         // Partitioned queue - show dialog if we haven't shown it for this queue yet
         if (partitionedDialogShownFor.current !== sourceName) {
@@ -168,14 +177,12 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
         // Non-partitioned queue - trigger browsing if we haven't already loaded for this queue
         if (queueDetailsLoadedFor.current !== sourceName) {
           queueDetailsLoadedFor.current = sourceName;
-          // Reset partitioned tracking since this is a valid queue
-          partitionedDialogShownFor.current = null;
           // Trigger browse for the current mode
           raiseOnChange(browseMode);
         }
       }
     }
-  }, [queueDetails, sourceType, sourceName, browseMode]);
+  }, [queueDetails, sourceType, sourceName]);
 
   // NOTE: Removed useEffect for browseMode changes to prevent infinite loops
   // Browse mode changes are now handled through user interactions and initial queue loading
@@ -188,23 +195,8 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
       return;
     }
 
-    // Check if this is a partitioned queue - browsing is not supported
-    // Only show popup if we haven't already shown it for this queue (to avoid duplicate popups)
-    if (isPartitionedQueue() && partitionedDialogShownFor.current !== sourceName) {
-      partitionedDialogShownFor.current = sourceName;
-      confirmDialog({
-        message: 'Message browsing is not supported for partitioned queues. Please select a non-partitioned queue.',
-        header: 'Partitioned Queue Not Supported',
-        icon: 'pi pi-exclamation-triangle',
-        acceptLabel: 'OK',
-        accept: () => {
-          // Dialog closed, no action needed
-        }
-      });
-      return;
-    }
-    
-    // If partitioned and we've already shown the dialog, just silently prevent browsing
+    // If partitioned queue, just silently prevent browsing
+    // (Dialog is handled in useEffect when queue details are loaded)
     if (isPartitionedQueue()) {
       return;
     }
