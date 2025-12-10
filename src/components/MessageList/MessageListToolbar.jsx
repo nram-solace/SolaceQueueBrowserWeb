@@ -271,7 +271,7 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     if (isReplayBasedMode(mode)) {
       confirmDialog({
         message: 'This sort order needs Replay and temporary queues to work. Do you want to proceed?',
-        header: 'Replay-Based Browsing Required',
+        header: '(BETA) Custom Sort Order',
         icon: 'pi pi-info-circle',
         accept: () => {
           setBrowseMode(mode);
