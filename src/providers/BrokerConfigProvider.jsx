@@ -238,16 +238,25 @@ export function useBrokerConfig() {
     const handleResponse = ({status, body}) => {
       const errorDetail = (
         body?.meta?.error?.description ||
+        body?.error ||
+        body?.message ||
         (() => {
-          const html = document.createElement('html');
-          html.innerHTML = body;
-          return html.querySelectorAll('center')?.[1]?.innerText;
+          if (typeof body === 'string') {
+            try {
+              const html = document.createElement('html');
+              html.innerHTML = body;
+              return html.querySelectorAll('center')?.[1]?.innerText;
+            } catch {
+              return null;
+            }
+          }
+          return null;
         })() ||
         'Unexpected error'
       ) + '.';
       switch (status) {
         case 200:
-          if (body.data.length > 0) {
+          if (body?.data && Array.isArray(body.data) && body.data.length > 0) {
             return { result: { connected: true, replay: true}, message: { severity:'info', summary: 'Success', detail: 'Broker connection succeeded.' }};
           } else {
             return { result: { connected: true, replay: false}, message: { severity:'warn', summary: 'Warning', detail: 'Replay Log not enabled on broker.' }};
@@ -258,6 +267,10 @@ export function useBrokerConfig() {
           return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Unauthorized', detail: errorDetail }};
         case 403:
           return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Forbidden', detail: errorDetail }};
+        case 500:
+        default:
+          // Handle proxy errors and other server errors
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: `SEMP: ${status === 500 ? 'Server Error' : 'Error'}`, detail: errorDetail }};
       }
     };
 

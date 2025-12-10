@@ -27,7 +27,15 @@ export default async function handler(req, res) {
     const targetHeader = req.headers['x-semp-target'];
     if (!targetHeader) {
       console.error('❌ Missing X-Semp-Target header');
-      return res.status(400).json({ error: 'Missing X-Semp-Target header' });
+      return res.status(400).json({ 
+        error: 'Missing X-Semp-Target header',
+        meta: {
+          error: {
+            description: 'Missing X-Semp-Target header',
+            status: 'FAILURE'
+          }
+        }
+      });
     }
 
     // Get the path from Vercel's dynamic route parameter
@@ -41,15 +49,31 @@ export default async function handler(req, res) {
       path = '/' + pathSegments;
     }
     
-    // Get query string from original request
-    // req.url in Vercel includes the full path with query string
-    const queryString = req.url.includes('?') ? '?' + req.url.split('?').slice(1).join('?') : '';
+    // Extract original query string from req.url, but remove the 'path' parameter
+    // that Vercel adds when using dynamic routes
+    let queryString = '';
+    if (req.url.includes('?')) {
+      const urlParts = req.url.split('?');
+      if (urlParts.length > 1) {
+        const queryParams = new URLSearchParams(urlParts.slice(1).join('?'));
+        // Remove the 'path' parameter that Vercel adds
+        queryParams.delete('path');
+        // Reconstruct query string without the path parameter
+        const cleanQuery = queryParams.toString();
+        if (cleanQuery) {
+          queryString = '?' + cleanQuery;
+        }
+      }
+    }
+    
     const fullPath = path + queryString;
     
     // Construct full target URL
     const targetUrl = `${targetHeader}${fullPath}`;
 
-    console.log(`🔄 Proxying SEMP request: ${req.method} ${fullPath} -> ${targetUrl}`);
+    console.log(`🔄 Proxying SEMP request: ${req.method} ${fullPath}`);
+    console.log(`   Target: ${targetUrl}`);
+    console.log(`   Has Auth: ${!!req.headers.authorization}`);
 
     // Prepare headers for the broker request
     const brokerHeaders = {
@@ -70,21 +94,84 @@ export default async function handler(req, res) {
       }
     });
 
-    // Make the request to the broker
-    const brokerResponse = await fetch(targetUrl, {
-      method: req.method,
-      headers: brokerHeaders,
-      body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
-    });
+    // Make the request to the broker with timeout
+    // Note: Vercel free tier has 10s function timeout, Pro has 60s
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+    let brokerResponse;
+    try {
+      brokerResponse = await fetch(targetUrl, {
+        method: req.method,
+        headers: brokerHeaders,
+        body: req.method !== 'GET' && req.method !== 'HEAD' ? JSON.stringify(req.body) : undefined,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      
+      // Enhanced error handling for different failure types
+      let errorMessage = fetchError.message || 'Unknown fetch error';
+      let errorDetails = '';
+      
+      if (fetchError.name === 'AbortError') {
+        errorMessage = 'Request timeout - broker did not respond within 8 seconds';
+        errorDetails = 'The broker may be slow to respond or unreachable. Check broker connectivity. Consider Vercel Pro plan for longer timeouts.';
+      } else if (fetchError.code === 'ENOTFOUND' || fetchError.code === 'ECONNREFUSED') {
+        errorMessage = `Cannot connect to broker: ${errorMessage}`;
+        errorDetails = 'DNS resolution failed or connection refused. Verify broker hostname and port.';
+      } else if (fetchError.code === 'CERT_HAS_EXPIRED' || fetchError.message.includes('certificate')) {
+        errorMessage = 'SSL certificate error';
+        errorDetails = 'Broker SSL certificate validation failed. This may indicate a self-signed certificate or expired cert.';
+      } else if (errorMessage.includes('fetch failed')) {
+        errorDetails = 'Network error occurred. This could be due to firewall rules, DNS issues, or broker unreachability from Vercel servers.';
+      }
+      
+      console.error('❌ Proxy fetch error:', {
+        message: errorMessage,
+        code: fetchError.code,
+        name: fetchError.name,
+        targetUrl,
+        details: errorDetails
+      });
+
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return res.status(500).json({ 
+        error: 'Proxy error',
+        message: errorMessage,
+        details: errorDetails,
+        meta: {
+          error: {
+            description: `Proxy error: ${errorMessage}${errorDetails ? ` - ${errorDetails}` : ''}`,
+            status: 'FAILURE',
+            code: fetchError.code || 'FETCH_ERROR'
+          }
+        }
+      });
+    }
 
     // Get response data
     const contentType = brokerResponse.headers.get('content-type') || '';
     let responseData;
     
-    if (contentType.includes('application/json')) {
-      responseData = await brokerResponse.json();
-    } else {
-      responseData = await brokerResponse.text();
+    try {
+      if (contentType.includes('application/json')) {
+        responseData = await brokerResponse.json();
+      } else {
+        const text = await brokerResponse.text();
+        responseData = text || { meta: { error: { description: 'Empty response', status: 'FAILURE' } } };
+      }
+    } catch (parseError) {
+      console.error('❌ Failed to parse broker response:', parseError);
+      responseData = {
+        meta: {
+          error: {
+            description: `Failed to parse broker response: ${parseError.message}`,
+            status: 'FAILURE'
+          }
+        }
+      };
     }
 
     // Set CORS headers for the response
@@ -93,17 +180,23 @@ export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Semp-Target');
 
     // Forward status and data
-    res.status(brokerResponse.status).json(responseData);
+    console.log(`✅ Proxy response: ${brokerResponse.status}`);
+    return res.status(brokerResponse.status).json(responseData);
 
   } catch (error) {
-    console.error('❌ Proxy error:', error);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.status(500).json({ 
-      error: 'Proxy error', 
+    console.error('❌ Proxy error (unhandled):', {
       message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code
+    });
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    return res.status(500).json({ 
+      error: 'Proxy error',
+      message: error.message || 'Unknown error',
       meta: {
         error: {
-          description: `Proxy error: ${error.message}`,
+          description: `Proxy error: ${error.message || 'Unknown error'}`,
           status: 'FAILURE'
         }
       }
