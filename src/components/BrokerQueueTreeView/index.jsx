@@ -1,21 +1,30 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSempApi } from '../../providers/SempClientProvider';
+import { Button } from 'primereact/button';
+import { Toast } from 'primereact/toast';
+import { InputText } from 'primereact/inputtext';
+import { Dialog } from 'primereact/dialog';
 
 import { Tree } from 'primereact/tree';
 
 import ContentPanel from '../ContentPanel';
 import BrokerConfigDialog from '../BrokerConfigDialog';
 import ReplayTopicDialog from '../ReplayTopicDialog';
+import SessionManagerDialog from '../SessionManagerDialog';
 
 import { TopicIcon, LvqIcon, QueueIcon } from '../../icons';
 import { APP_TITLE } from '../../config/version';
 
 import classes from './styles.module.css';
 
-export default function TreeView({ brokers, brokerEditor, onSourceSelected }) {
+export default function TreeView({ brokers, brokerEditor, sessionManager, onSourceSelected }) {
   const [brokerForConfig, setBrokerForConfig] = useState(null);
   const [brokerAndReplayTopic, setBrokerAndReplayTopic] = useState(null);
+  const [showSessionManager, setShowSessionManager] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [sessionName, setSessionName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const toast = useRef(null);
 
   const [queuesListMap, setQueuesListMap] = useState({});
   const [topicsListMap, setTopicsListMap] = useState({});
@@ -160,6 +169,55 @@ export default function TreeView({ brokers, brokerEditor, onSourceSelected }) {
     setBrokerForConfig({});
   };
 
+  const handleSessionManagerClick = () => {
+    setShowSessionManager(true);
+  };
+
+  const handleSessionManagerHide = () => {
+    setShowSessionManager(false);
+  };
+
+  const handleSaveClick = () => {
+    setSessionName('');
+    setShowSaveDialog(true);
+  };
+
+  const handleSaveSession = async () => {
+    if (!sessionName.trim()) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Validation',
+        detail: 'Please enter a session name'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await sessionManager.save(sessionName.trim());
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Success',
+        detail: `Session "${sessionName.trim()}" saved successfully`
+      });
+      setShowSaveDialog(false);
+      setSessionName('');
+    } catch (err) {
+      console.error('Failed to save session:', err);
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Failed to save session'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRestoreClick = () => {
+    setShowSessionManager(true);
+  };
+
   const handleConfigHide = (data) => {
     setBrokerForConfig(null);
   };
@@ -188,8 +246,37 @@ export default function TreeView({ brokers, brokerEditor, onSourceSelected }) {
     <ContentPanel 
       title="Event Brokers" 
       headerPrefix={<div className={classes.versionHeader}>{APP_TITLE}</div>}
-      toolbar={<i className={`pi pi-plus ${classes.toolIcon}`} onClick={handleAddBrokerClick}></i>}
     >
+      <Toast ref={toast} />
+      <div className={classes.buttonRow}>
+        <Button 
+          icon="pi pi-plus" 
+          text 
+          size="small"
+          onClick={handleAddBrokerClick} 
+          tooltip="Add Broker"
+          tooltipOptions={{ position: 'bottom' }}
+          aria-label="Add Broker"
+        />
+        <Button 
+          icon="pi pi-save" 
+          text 
+          size="small"
+          onClick={handleSaveClick} 
+          tooltip="Save Session"
+          tooltipOptions={{ position: 'bottom' }}
+          aria-label="Save Session"
+        />
+        <Button 
+          icon="pi pi-undo" 
+          text 
+          size="small"
+          onClick={handleRestoreClick} 
+          tooltip="Restore Session"
+          tooltipOptions={{ position: 'bottom' }}
+          aria-label="Restore Session"
+        />
+      </div>
       <div className={classes.container}>
         <Tree value={nodes} className={classes.tree} nodeTemplate={nodeTemplate} selectionMode="single" loading={isLoading}
           onExpand={handleExpand} onSelect={handleSelect}
@@ -197,6 +284,39 @@ export default function TreeView({ brokers, brokerEditor, onSourceSelected }) {
         />
         <BrokerConfigDialog config={brokerForConfig} brokerEditor={brokerEditor} onHide={handleConfigHide} />
         <ReplayTopicDialog config={brokerAndReplayTopic} brokerEditor={brokerEditor} onHide={handleTopicDialogHide} />
+        <SessionManagerDialog 
+          sessionManager={sessionManager} 
+          visible={showSessionManager} 
+          onHide={handleSessionManagerHide} 
+        />
+        <Dialog
+          header="Save Session"
+          visible={showSaveDialog}
+          onHide={() => setShowSaveDialog(false)}
+          style={{ width: '400px' }}
+          footer={
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <Button label="Cancel" outlined onClick={() => setShowSaveDialog(false)} />
+              <Button label="Save" onClick={handleSaveSession} loading={isLoading} />
+            </div>
+          }
+        >
+          <div style={{ padding: '1rem 0' }}>
+            <label htmlFor="sessionName" style={{ display: 'block', marginBottom: '0.5rem' }}>Session Name</label>
+            <InputText
+              id="sessionName"
+              value={sessionName}
+              onChange={(e) => setSessionName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSaveSession();
+                }
+              }}
+              style={{ width: '100%' }}
+              autoFocus
+            />
+          </div>
+        </Dialog>
       </div>
     </ContentPanel>
   );

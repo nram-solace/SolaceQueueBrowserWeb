@@ -16,7 +16,7 @@ import 'primeicons/primeicons.css';
 import './App.css';
 
 export default function App() {
-  const { brokers, brokerEditor } = useBrokerConfig();
+  const { brokers, brokerEditor, sessionManager } = useBrokerConfig();
   
   const [selectedSource, setSelectedSource] = useState({});
   const [selectedMessage, setSelectedMessage] = useState({});
@@ -46,7 +46,7 @@ export default function App() {
       <>
         <RootLayout>
           <RootLayout.LeftPanel>
-            <TreeView brokers={brokers} brokerEditor={brokerEditor} onSourceSelected={handleSourceSelected} />
+            <TreeView brokers={brokers} brokerEditor={brokerEditor} sessionManager={sessionManager} onSourceSelected={handleSourceSelected} />
           </RootLayout.LeftPanel>
           <RootLayout.CenterPanel>
             <MessageList 

@@ -23,6 +23,18 @@ export const ConfigSource = {
     },
     writeConfig: async (brokers) => {
       await fs.writeTextFile('config.json', JSON.stringify(brokers), { baseDir });
+    },
+    readSessions: async () => {
+      fs.mkdir('', { baseDir, recursive: true });
+      if (await fs.exists('sessions.json', { baseDir })) {
+        const sessionsData = await fs.readTextFile('sessions.json', { baseDir });
+        return JSON.parse(sessionsData);
+      } else {
+        return {};
+      }
+    },
+    writeSessions: async (sessions) => {
+      await fs.writeTextFile('sessions.json', JSON.stringify(sessions), { baseDir });
     }
   },
   LOCAL_STORAGE: {
@@ -33,6 +45,13 @@ export const ConfigSource = {
     },
     writeConfig: async (brokers) => {
       window.localStorage.setItem('config', JSON.stringify(brokers));
+    },
+    readSessions: async () => {
+      const sessionsData = window.localStorage.getItem('sessions');
+      return sessionsData ? JSON.parse(sessionsData) : {};
+    },
+    writeSessions: async (sessions) => {
+      window.localStorage.setItem('sessions', JSON.stringify(sessions));
     }
   }
 }
@@ -70,6 +89,44 @@ export function useBrokerConfig() {
     const filteredBrokers = brokers.filter(b => b.id !== config.id);
     source.writeConfig(filteredBrokers);
     setBrokers(filteredBrokers);
+  };
+
+  const saveSession = async (sessionName) => {
+    const sessions = await source.readSessions();
+    sessions[sessionName] = {
+      name: sessionName,
+      brokers: [...brokers],
+      savedAt: new Date().toISOString()
+    };
+    await source.writeSessions(sessions);
+    return sessions;
+  };
+
+  const restoreSession = async (sessionName) => {
+    const sessions = await source.readSessions();
+    const session = sessions[sessionName];
+    if (session && session.brokers) {
+      setBrokers([...session.brokers]);
+      await source.writeConfig(session.brokers);
+      return true;
+    }
+    return false;
+  };
+
+  const listSessions = async () => {
+    const sessions = await source.readSessions();
+    return Object.values(sessions).map(s => ({
+      name: s.name,
+      savedAt: s.savedAt,
+      brokerCount: s.brokers?.length || 0
+    })).sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+  };
+
+  const deleteSession = async (sessionName) => {
+    const sessions = await source.readSessions();
+    delete sessions[sessionName];
+    await source.writeSessions(sessions);
+    return sessions;
   };
 
   const testBroker = async (config) => {
@@ -189,6 +246,12 @@ export function useBrokerConfig() {
       save: saveBroker,
       delete: deleteBroker,
       test: testBroker
+    },
+    sessionManager: {
+      save: saveSession,
+      restore: restoreSession,
+      list: listSessions,
+      delete: deleteSession
     }
   };
 }

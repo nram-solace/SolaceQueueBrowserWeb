@@ -13,7 +13,7 @@
   "dependencies": {
     "@tabler/icons-react": "^3.11.0",
     "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/plugin-fs": "^2.0.3",
+    "@tauri-apps/plugin-fs": "^v2.0.4",
     "@tauri-apps/plugin-http": "^2.0.1",
     "@tauri-apps/plugin-shell": "^2.0.1",
     "primeflex": "^3.3.1",
