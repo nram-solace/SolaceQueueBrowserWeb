@@ -169,10 +169,11 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
         if (partitionedDialogShownFor.current !== sourceName) {
           partitionedDialogShownFor.current = sourceName;
           confirmDialog({
-            message: 'Message browsing is not supported for partitioned queues. Please select a non-partitioned queue.',
-            header: 'Partitioned Queue Not Supported',
+            message: 'Browsing is not supported for Partitioned Queues.',
+            header: 'Browsing Unsupported for this Queue',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'OK',
+            rejectClassName: 'hidden-reject',
             accept: () => {
               // Dialog closed, no action needed
             }
@@ -254,10 +255,11 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     // Check if this is a partitioned queue - browsing is not supported
     if (isPartitionedQueue()) {
       confirmDialog({
-        message: 'Message browsing is not supported for partitioned queues. Please select a non-partitioned queue.',
-        header: 'Partitioned Queue Not Supported',
+        message: 'Browsing is not supported for Partitioned Queues.',
+        header: 'Browsing Unsupported for this Queue',
         icon: 'pi pi-exclamation-triangle',
         acceptLabel: 'OK',
+        rejectClassName: 'hidden-reject',
         accept: () => {
           // Dialog closed, no action needed - keep current mode
         }

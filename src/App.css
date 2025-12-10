@@ -70,3 +70,8 @@ svg {
 .p-treenode-content {
   padding: 0.1rem;
 }
+
+/* Hide reject button with hidden-reject class */
+.hidden-reject {
+  display: none !important;
+}
