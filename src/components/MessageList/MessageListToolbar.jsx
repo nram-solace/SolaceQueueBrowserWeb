@@ -402,12 +402,20 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
               optionLabel="name" 
               disabled={partitioned}
             />
+            <Button 
+              icon="pi pi-refresh" 
+              onClick={handleRefreshClick} 
+              size="small" 
+              disabled={partitioned}
+              tooltip="Refresh"
+              tooltipOptions={{ position: 'bottom' }}
+            />
             {
               isReplayBasedMode(browseMode) && (
                 (browseMode === BROWSE_MODE.HEAD) ?
-                <div style={{ display: 'flex', width: 188 }}></div> :
+                null :
                 (browseMode === BROWSE_MODE.TAIL) ?
-                  <div style={{ display: 'flex', width: 188 }}></div> :
+                  null :
                   (browseMode === BROWSE_MODE.MSGID) ?
                     <InputText 
                       placeholder="ID or RGMID" 
@@ -427,17 +435,9 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
                         maxDate={maxDate}
                         disabled={partitioned}
                       /> :
-                      <InputText disabled={true} placeholder="Invalid browse mode" />
+                      null
               )
             }
-            <Button 
-              icon="pi pi-refresh" 
-              onClick={handleRefreshClick} 
-              size="small" 
-              disabled={partitioned}
-              tooltip="Refresh"
-              tooltipOptions={{ position: 'bottom' }}
-            />
           </div>
         );
       }}
