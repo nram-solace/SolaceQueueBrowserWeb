@@ -587,6 +587,7 @@ export function useQueueBrowsing() {
     const { type } = sourceDefinition;
     const { browseMode, startFrom = {}} = browseFrom;
 
+
     const newBrowser = (type) ? (
       (browseMode === BROWSE_MODE.BASIC || type === SOURCE_TYPE.BASIC) ?
         new BasicQueueBrowser({ sourceDefinition, startFrom, sempApi, solclientFactory }) :
@@ -594,6 +595,7 @@ export function useQueueBrowsing() {
           new QueuedMessagesReplayBrowser({ sourceDefinition, startFrom, sempApi, solclientFactory }) :
           new LoggedMessagesReplayBrowser({ sourceDefinition, startFrom, sempApi, solclientFactory })
     ) : NULL_BROWSER;
+    
     try {
       await browser?.close();
     } catch (err) {

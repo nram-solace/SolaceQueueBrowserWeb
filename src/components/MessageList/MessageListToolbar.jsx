@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
@@ -19,6 +19,8 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
   const sempApi = useSempApi();
   const [messageCount, setMessageCount] = useState(null);
   const [queueDetails, setQueueDetails] = useState(null);
+  const partitionedDialogShownFor = useRef(null); // Track which queue we've shown the dialog for
+  const queueDetailsLoadedFor = useRef(null); // Track which queue we've loaded details for
 
   const [sourceLabel, browseModes] =
     (sourceType === SOURCE_TYPE.BASIC) ? [
@@ -54,6 +56,18 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
 
   const basicSource = (sourceType === SOURCE_TYPE.BASIC);
 
+  // Check if the queue is partitioned (partitions > 0)
+  // Only check if queueDetails exist and we're currently viewing a queue (not a topic)
+  const isPartitionedQueue = () => {
+    if (!queueDetails || (sourceType !== SOURCE_TYPE.QUEUE && sourceType !== SOURCE_TYPE.BASIC)) {
+      return false;
+    }
+    // Only consider it partitioned if queueDetails match the current source
+    // This prevents using stale queueDetails from a previous queue
+    const partitions = queueDetails.partitionCount ?? 0;
+    return partitions > 0;
+  };
+
   const getFromTime = () => {
     if (!dateTime) {
       return ({ fromTime: null });
@@ -88,8 +102,14 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
   useEffect(() => {
     // Reset to Default when source changes
     setBrowseMode(BROWSE_MODE.BASIC);
-    // trigger a refresh automatically when source has changed
-    raiseOnChange(BROWSE_MODE.BASIC);
+    // Reset the dialog tracking when source changes
+    partitionedDialogShownFor.current = null;
+    queueDetailsLoadedFor.current = null;
+    // Clear queue details immediately to prevent stale data from being used
+    setQueueDetails(null);
+    setMessageCount(null);
+    // Don't call raiseOnChange here - wait for queueDetails to load
+    // The queueDetails effect will trigger browsing for non-partitioned queues
   }, [brokerId, sourceType, sourceName]);
 
   // Fetch queue message count and details when a queue is selected
@@ -123,16 +143,72 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     fetchQueueDetails();
   }, [sourceType, sourceName, config, sempApi]);
 
+  // Show warning dialog when a partitioned queue is detected (only once per queue selection)
+  // Also trigger browsing when a non-partitioned queue is loaded
   useEffect(() => {
-    // Trigger refresh when browse mode changes, but skip TIME and MSGID modes
-    // (they need user input first, will be triggered by Refresh button or input changes)
-    if (browseMode !== BROWSE_MODE.TIME && browseMode !== BROWSE_MODE.MSGID) {
-      raiseOnChange(browseMode);
+    if (queueDetails && (sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC)) {
+      const partitions = queueDetails.partitionCount ?? 0;
+      if (partitions > 0) {
+        // Partitioned queue - show dialog if we haven't shown it for this queue yet
+        if (partitionedDialogShownFor.current !== sourceName) {
+          partitionedDialogShownFor.current = sourceName;
+          queueDetailsLoadedFor.current = sourceName;
+          confirmDialog({
+            message: 'Message browsing is not supported for partitioned queues. Please select a non-partitioned queue.',
+            header: 'Partitioned Queue Not Supported',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'OK',
+            accept: () => {
+              // Dialog closed, no action needed
+            }
+          });
+        }
+        // Don't trigger browsing for partitioned queues
+      } else {
+        // Non-partitioned queue - trigger browsing if we haven't already loaded for this queue
+        if (queueDetailsLoadedFor.current !== sourceName) {
+          queueDetailsLoadedFor.current = sourceName;
+          // Reset partitioned tracking since this is a valid queue
+          partitionedDialogShownFor.current = null;
+          // Trigger browse for the current mode
+          raiseOnChange(browseMode);
+        }
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [browseMode]);
+  }, [queueDetails, sourceType, sourceName, browseMode]);
+
+  // NOTE: Removed useEffect for browseMode changes to prevent infinite loops
+  // Browse mode changes are now handled through user interactions and initial queue loading
 
   const raiseOnChange = (browseMode) => {
+    // Don't proceed if queueDetails don't exist yet (still loading)
+    // This prevents using stale data or showing popups for wrong queues
+    if (!queueDetails && (sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC)) {
+      // Queue details are still loading, wait for them
+      return;
+    }
+
+    // Check if this is a partitioned queue - browsing is not supported
+    // Only show popup if we haven't already shown it for this queue (to avoid duplicate popups)
+    if (isPartitionedQueue() && partitionedDialogShownFor.current !== sourceName) {
+      partitionedDialogShownFor.current = sourceName;
+      confirmDialog({
+        message: 'Message browsing is not supported for partitioned queues. Please select a non-partitioned queue.',
+        header: 'Partitioned Queue Not Supported',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'OK',
+        accept: () => {
+          // Dialog closed, no action needed
+        }
+      });
+      return;
+    }
+    
+    // If partitioned and we've already shown the dialog, just silently prevent browsing
+    if (isPartitionedQueue()) {
+      return;
+    }
+
     // For BASIC source type, always use BASIC mode
     if (basicSource) {
       onChange({ browseMode: BROWSE_MODE.BASIC });
@@ -177,6 +253,20 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
   };
 
   const handleBrowseModeChange = ({ value: mode }) => {
+    // Check if this is a partitioned queue - browsing is not supported
+    if (isPartitionedQueue()) {
+      confirmDialog({
+        message: 'Message browsing is not supported for partitioned queues. Please select a non-partitioned queue.',
+        header: 'Partitioned Queue Not Supported',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'OK',
+        accept: () => {
+          // Dialog closed, no action needed - keep current mode
+        }
+      });
+      return;
+    }
+
     // If selecting a replay-based mode, show confirmation dialog
     if (isReplayBasedMode(mode)) {
       confirmDialog({
@@ -185,15 +275,21 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
         icon: 'pi pi-info-circle',
         accept: () => {
           setBrowseMode(mode);
+          // Trigger browsing with new mode
+          setTimeout(() => raiseOnChange(mode), 0);
         },
         reject: () => {
           // Fall back to Default (BASIC mode)
           setBrowseMode(BROWSE_MODE.BASIC);
+          // Trigger browsing with basic mode
+          setTimeout(() => raiseOnChange(BROWSE_MODE.BASIC), 0);
         }
       });
     } else {
       // Default - no confirmation needed
       setBrowseMode(mode);
+      // Trigger browsing with new mode
+      setTimeout(() => raiseOnChange(mode), 0);
     }
   };
 
@@ -294,27 +390,50 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
           )}
         </div>
       )}
-      end={() =>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <label>Sort Order:</label>
-          <Dropdown value={browseMode} onChange={handleBrowseModeChange} options={browseModes} optionLabel="name" />
-          {
-            isReplayBasedMode(browseMode) && (
-              (browseMode === BROWSE_MODE.HEAD) ?
-              <div style={{ display: 'flex', width: 188 }}></div> :
-              (browseMode === BROWSE_MODE.TAIL) ?
+      end={() => {
+        const partitioned = isPartitionedQueue();
+        return (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <label>Sort Order:</label>
+            <Dropdown 
+              value={browseMode} 
+              onChange={handleBrowseModeChange} 
+              options={browseModes} 
+              optionLabel="name" 
+              disabled={partitioned}
+            />
+            {
+              isReplayBasedMode(browseMode) && (
+                (browseMode === BROWSE_MODE.HEAD) ?
                 <div style={{ display: 'flex', width: 188 }}></div> :
-                (browseMode === BROWSE_MODE.MSGID) ?
-                  <InputText placeholder="ID or RGMID" value={msgId} onChange={handleMsgIdTextChange} /> :
-                  (browseMode === BROWSE_MODE.TIME) ?
-                    <Calendar placeholder="Beginning of log" visible={calendarVisible} value={dateTime} showTime
-                      onVisibleChange={handleCalendarVisibleChangle} onChange={handleCalendarChange} minDate={minDate} maxDate={maxDate}
+                (browseMode === BROWSE_MODE.TAIL) ?
+                  <div style={{ display: 'flex', width: 188 }}></div> :
+                  (browseMode === BROWSE_MODE.MSGID) ?
+                    <InputText 
+                      placeholder="ID or RGMID" 
+                      value={msgId} 
+                      onChange={handleMsgIdTextChange} 
+                      disabled={partitioned}
                     /> :
-                    <InputText disabled={true} placeholder="Invalid browse mode" />
-            )
-          }
-          <Button onClick={handleRefreshClick} size="small">Refresh</Button>
-        </div>}
+                    (browseMode === BROWSE_MODE.TIME) ?
+                      <Calendar 
+                        placeholder="Beginning of log" 
+                        visible={calendarVisible} 
+                        value={dateTime} 
+                        showTime
+                        onVisibleChange={handleCalendarVisibleChangle} 
+                        onChange={handleCalendarChange} 
+                        minDate={minDate} 
+                        maxDate={maxDate}
+                        disabled={partitioned}
+                      /> :
+                      <InputText disabled={true} placeholder="Invalid browse mode" />
+              )
+            }
+            <Button onClick={handleRefreshClick} size="small" disabled={partitioned}>Refresh</Button>
+          </div>
+        );
+      }}
     />
   );
 }
