@@ -958,11 +958,11 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
           >
             <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
             <Column body={messageStatus} />
-            <Column field="meta.msgId" header="Message ID" />
-            <Column field="headers.applicationMessageId" header="Application Message ID" body ={(rowData) => rowData.headers?.applicationMessageId ?? 'Not Available' }/>
-            <Column field="headers.applicationMessageType" header="Application Message Type" body ={(rowData) => rowData.headers?.applicationMessageType ?? 'Not Available' } />
-            <Column body={formatDateTime} header="Spooled Time" />
-            <Column field="meta.attachmentSize" header="Attachment Size (B)" />
+            <Column field="meta.msgId" header="MsgID" />
+            <Column field="headers.applicationMessageId" header="ApplicationMsgID" body ={(rowData) => rowData.headers?.applicationMessageId ?? 'Not Available' }/>
+            <Column field="headers.applicationMessageType" header="ApplicationMsgType" body ={(rowData) => rowData.headers?.applicationMessageType ?? 'Not Available' } />
+            <Column body={formatDateTime} header="SpoolTime" />
+            <Column field="meta.attachmentSize" header="MsgSize(B)" />
             <Column body={actionButtonsBody} header="Actions" style={{ width: (type === SOURCE_TYPE.QUEUE || type === SOURCE_TYPE.BASIC) ? '180px' : '80px' }} />
           </DataTable>
         </div>

@@ -19,7 +19,7 @@ export default function MessagePayloadView({ message }) {
 
   return (
     messageUndefined ? 'Please select a message.' :
-      payloadUndefined ? 'Payload unavailable.' :
+      payloadUndefined ? '' :
       isBinaryPayloadNotAvailable ? <div className={classes.binaryPayloadMessage}>Binary payload - not displayed</div> :
       isJson (message?.payload) ? <JsonView src={JSON.parse(message?.payload)} theme="atom" dark="false" />  :
     <pre className={classes.wrapText}>{message?.payload || ''}</pre>

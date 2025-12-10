@@ -144,7 +144,7 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     };
 
     fetchQueueDetails();
-  }, [sourceType, sourceName, config, sempApi]);
+  }, [sourceType, sourceName, config]);
 
   // Show warning dialog when a partitioned queue is detected (only once per queue selection)
   // Also trigger browsing when a non-partitioned queue is loaded
