@@ -7,6 +7,9 @@ const PAGE_SIZE = 100;
 const MIN_MSG_ID = 1n;
 const MAX_MSG_ID = 9223372036854775808n;
 
+// Special constant to indicate binary payload that cannot be retrieved
+export const BINARY_PAYLOAD_NOT_AVAILABLE = '__BINARY_PAYLOAD_NOT_AVAILABLE__';
+
 export const SOURCE_TYPE = {
   BASIC: 'basic',
   QUEUE: 'queue',
@@ -354,31 +357,76 @@ class BaseBrowser {
       }
     } else if (expectedAttachmentSize > 0) {
       // Log warning if we expected an attachment but didn't get one
-      console.warn(`WARNING: Metadata shows attachmentSize=${expectedAttachmentSize} but getBinaryAttachment() returned null/undefined. This may indicate queue browser limitation.`);
+      // This is a known limitation: queue browser may not be able to retrieve binary attachments
+      // for certain message types. Return special indicator so UI can show appropriate message.
+      console.warn(`WARNING: Metadata shows attachmentSize=${expectedAttachmentSize} but getBinaryAttachment() returned null/undefined. This may indicate queue browser limitation. Message will be displayed with empty payload.`);
+      return BINARY_PAYLOAD_NOT_AVAILABLE;
     }
 
     // No payload found - return empty string (original behavior)
+    // Messages with empty payloads should still be displayed in the UI
     return '';
   }
 
   merge({ messages, msgMetaData }) {
+    // Create index by replicationGroupMsgId (primary key)
     const messageIdx = new Map(msgMetaData.map(meta => ([meta.replicationGroupMsgId, { meta, headers: {}, userProperties: {}, payload: '' }])));
+    
+    // Also create a fallback index by msgId for messages that might not have replicationGroupMsgId
+    const messageIdxByMsgId = new Map(msgMetaData.map(meta => {
+      if (meta.msgId && meta.replicationGroupMsgId) {
+        return [meta.msgId, meta.replicationGroupMsgId];
+      }
+      return null;
+    }).filter(Boolean));
+    
     messages.forEach(msg => {
       const replicationGroupMsgId = msg.getReplicationGroupMessageId()?.toString();
-      if (!replicationGroupMsgId) {
-        return; // Skip messages without RGMID
+      const guaranteedMessageId = msg.getGuaranteedMessageId()?.low;
+      
+      // Try to find matching metadata entry
+      let metaData = null;
+      let attachmentSize = 0;
+      
+      if (replicationGroupMsgId) {
+        // Primary match: by replicationGroupMsgId
+        metaData = messageIdx.get(replicationGroupMsgId);
+        if (metaData) {
+          attachmentSize = metaData.meta?.attachmentSize || 0;
+        }
       }
       
-      // Get metadata to check attachment size
-      const metaData = messageIdx.get(replicationGroupMsgId);
-      const attachmentSize = metaData?.meta?.attachmentSize || 0;
+      // Fallback match: by msgId if replicationGroupMsgId match failed
+      if (!metaData && guaranteedMessageId) {
+        const matchingRgmid = messageIdxByMsgId.get(guaranteedMessageId);
+        if (matchingRgmid) {
+          metaData = messageIdx.get(matchingRgmid);
+          if (metaData) {
+            attachmentSize = metaData.meta?.attachmentSize || 0;
+          }
+        }
+      }
+      
+      // If still no match, try to find any metadata entry with matching msgId
+      if (!metaData && guaranteedMessageId) {
+        for (const [rgmid, entry] of messageIdx.entries()) {
+          if (entry.meta?.msgId === guaranteedMessageId) {
+            metaData = entry;
+            attachmentSize = entry.meta?.attachmentSize || 0;
+            break;
+          }
+        }
+      }
+      
+      // Extract payload (this will log warnings if attachment can't be retrieved)
+      const payload = this.extractPayload(msg, attachmentSize);
       
       const msgObj = {
-        payload: this.extractPayload(msg, attachmentSize),
+        payload: payload,
         headers: {
           destination: msg.getDestination()?.getName() || '',
-          replicationGroupMsgId: replicationGroupMsgId,
-          guaranteedMessageId: msg.getGuaranteedMessageId()?.low,
+          replicationGroupMsgId: replicationGroupMsgId || metaData?.meta?.replicationGroupMsgId || '',
+          guaranteedMessageId: guaranteedMessageId,
           applicationMessageId: msg.getApplicationMessageId(),
           applicationMessageType: msg.getApplicationMessageType(),
           correlationId: msg.getCorrelationId(),
@@ -394,15 +442,27 @@ class BaseBrowser {
       };
       
       if (metaData) {
+        // Update existing metadata entry with message data
         Object.assign(metaData, msgObj);
       } else {
         // Message exists but no metadata - add it with minimal structure
-        messageIdx.set(replicationGroupMsgId, {
-          meta: { replicationGroupMsgId },
+        // Use replicationGroupMsgId if available, otherwise create a placeholder
+        const key = replicationGroupMsgId || `msg-${guaranteedMessageId || Date.now()}`;
+        messageIdx.set(key, {
+          meta: { 
+            replicationGroupMsgId: replicationGroupMsgId || '',
+            msgId: guaranteedMessageId,
+            attachmentSize: attachmentSize
+          },
           ...msgObj
         });
       }
     });
+    
+    // Return all entries - this includes:
+    // 1. Metadata entries that were matched with messages
+    // 2. Metadata entries that had no matching message (will have empty payload/headers but metadata)
+    // 3. Messages that had no matching metadata (will have message data but minimal metadata)
     return [...messageIdx.values()];
   }
 }

@@ -3,3 +3,10 @@
   word-break: break-all;
   font-size: small;
 }
+
+.binaryPayloadMessage {
+  color: #9ca3af;
+  font-style: italic;
+  padding: 0.5rem;
+  font-size: small;
+}
