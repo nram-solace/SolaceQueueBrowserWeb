@@ -37,88 +37,92 @@ export const ConfigSource = {
       await fs.writeTextFile('sessions.json', JSON.stringify(sessions), { baseDir });
     }
   },
-  LOCAL_STORAGE: {
-    name: 'localStorage',
+  LOCAL_STORAGE: (() => {
     // In-memory file handle (lost on page refresh, but works during session)
-    _fileHandle: null,
-    readConfig: async () => {
-      const configData = window.localStorage.getItem('config');
-      return configData ? JSON.parse(configData) : [];
-    },
-    writeConfig: async (brokers) => {
-      window.localStorage.setItem('config', JSON.stringify(brokers));
-    },
-    readSessions: async () => {
-      // Try to read from file system if we have a file handle in memory
-      if (this._fileHandle && 'showOpenFilePicker' in window) {
-        try {
-          const file = await this._fileHandle.getFile();
-          const contents = await file.text();
-          const sessions = JSON.parse(contents);
-          
-          // Also sync to localStorage as backup
-          window.localStorage.setItem('sessions', JSON.stringify(sessions));
-          
-          return sessions;
-        } catch (err) {
-          // Handle is invalid, clear it and fall back
-          this._fileHandle = null;
-          console.warn('File handle invalid, falling back to localStorage:', err);
-        }
-      }
-      
-      // Fallback to localStorage
-      const sessionsData = window.localStorage.getItem('sessions');
-      return sessionsData ? JSON.parse(sessionsData) : {};
-    },
-    writeSessions: async (sessions) => {
-      // Try to write to file system if File System Access API is available
-      if ('showSaveFilePicker' in window) {
-        try {
-          // If we don't have a file handle, prompt user to choose location
-          if (!this._fileHandle) {
-            const lastFileName = window.localStorage.getItem('sessionsFileName') || 'sessions.json';
+    // Using closure to persist across method calls
+    let fileHandle = null;
+    
+    return {
+      name: 'localStorage',
+      readConfig: async () => {
+        const configData = window.localStorage.getItem('config');
+        return configData ? JSON.parse(configData) : [];
+      },
+      writeConfig: async (brokers) => {
+        window.localStorage.setItem('config', JSON.stringify(brokers));
+      },
+      readSessions: async () => {
+        // Try to read from file system if we have a file handle in memory
+        if (fileHandle && 'showOpenFilePicker' in window) {
+          try {
+            const file = await fileHandle.getFile();
+            const contents = await file.text();
+            const sessions = JSON.parse(contents);
             
-            this._fileHandle = await window.showSaveFilePicker({
-              suggestedName: lastFileName,
-              types: [{
-                description: 'JSON Files',
-                accept: { 'application/json': ['.json'] }
-              }]
-            });
+            // Also sync to localStorage as backup
+            window.localStorage.setItem('sessions', JSON.stringify(sessions));
             
-            // Remember the file name
-            window.localStorage.setItem('sessionsFileName', this._fileHandle.name);
-          }
-          
-          // Write to file
-          const writable = await this._fileHandle.createWritable();
-          await writable.write(JSON.stringify(sessions, null, 2));
-          await writable.close();
-          
-          // Also save to localStorage as backup
-          window.localStorage.setItem('sessions', JSON.stringify(sessions));
-          
-          console.log('Sessions saved to file system:', this._fileHandle.name);
-          return;
-        } catch (err) {
-          // User cancelled or error occurred
-          if (err.name === 'AbortError') {
-            // User cancelled - clear handle so they can choose again next time
-            this._fileHandle = null;
-            throw err; // Re-throw so caller knows user cancelled
-          } else {
-            // Other error - clear handle and fall back to localStorage
-            this._fileHandle = null;
-            console.warn('Failed to save sessions to file system, using localStorage:', err);
+            return sessions;
+          } catch (err) {
+            // Handle is invalid, clear it and fall back
+            fileHandle = null;
+            console.warn('File handle invalid, falling back to localStorage:', err);
           }
         }
+        
+        // Fallback to localStorage
+        const sessionsData = window.localStorage.getItem('sessions');
+        return sessionsData ? JSON.parse(sessionsData) : {};
+      },
+      writeSessions: async (sessions) => {
+        // Try to write to file system if File System Access API is available
+        if ('showSaveFilePicker' in window) {
+          try {
+            // If we don't have a file handle, prompt user to choose location
+            if (!fileHandle) {
+              const lastFileName = window.localStorage.getItem('sessionsFileName') || 'sessions.json';
+              
+              fileHandle = await window.showSaveFilePicker({
+                suggestedName: lastFileName,
+                types: [{
+                  description: 'JSON Files',
+                  accept: { 'application/json': ['.json'] }
+                }]
+              });
+              
+              // Remember the file name
+              window.localStorage.setItem('sessionsFileName', fileHandle.name);
+            }
+            
+            // Write to file
+            const writable = await fileHandle.createWritable();
+            await writable.write(JSON.stringify(sessions, null, 2));
+            await writable.close();
+            
+            // Also save to localStorage as backup
+            window.localStorage.setItem('sessions', JSON.stringify(sessions));
+            
+            console.log('Sessions saved to file system:', fileHandle.name);
+            return;
+          } catch (err) {
+            // User cancelled or error occurred
+            if (err.name === 'AbortError') {
+              // User cancelled - clear handle so they can choose again next time
+              fileHandle = null;
+              throw err; // Re-throw so caller knows user cancelled
+            } else {
+              // Other error - clear handle and fall back to localStorage
+              fileHandle = null;
+              console.warn('Failed to save sessions to file system, using localStorage:', err);
+            }
+          }
+        }
+        
+        // Fallback to localStorage
+        window.localStorage.setItem('sessions', JSON.stringify(sessions));
       }
-      
-      // Fallback to localStorage
-      window.localStorage.setItem('sessions', JSON.stringify(sessions));
-    }
-  }
+    };
+  })()
 }
 
 export function BrokerConfigProvider({ source, children }) {
