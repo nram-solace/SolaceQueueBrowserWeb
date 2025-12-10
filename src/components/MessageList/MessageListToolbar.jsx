@@ -430,7 +430,14 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
                       <InputText disabled={true} placeholder="Invalid browse mode" />
               )
             }
-            <Button onClick={handleRefreshClick} size="small" disabled={partitioned}>Refresh</Button>
+            <Button 
+              icon="pi pi-refresh" 
+              onClick={handleRefreshClick} 
+              size="small" 
+              disabled={partitioned}
+              tooltip="Refresh"
+              tooltipOptions={{ position: 'bottom' }}
+            />
           </div>
         );
       }}
