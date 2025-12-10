@@ -2,6 +2,15 @@
   background-color: var(--surface-ground);
 }
 
+.messageListToolbarFirstRow {
+  background-color: var(--surface-100) !important;
+  border-bottom: 2px solid var(--surface-border);
+}
+
+.messageListToolbarSecondRow {
+  background-color: var(--surface-0) !important;
+}
+
 .messageListTable {
   height: 100%;
   display: flex;

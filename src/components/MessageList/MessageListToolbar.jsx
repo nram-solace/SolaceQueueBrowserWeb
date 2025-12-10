@@ -4,6 +4,8 @@ import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
 import { Toolbar } from 'primereact/toolbar';
 import { confirmDialog } from 'primereact/confirmdialog';
 
@@ -12,7 +14,20 @@ import { useSempApi } from '../../providers/SempClientProvider';
 
 import classes from './styles.module.css';
 
-export default function MessageListToolbar({ sourceDefinition, minTime, maxTime, onChange }) {
+export default function MessageListToolbar({ 
+  sourceDefinition, 
+  minTime, 
+  maxTime, 
+  onChange,
+  // Props for Row 2 controls
+  selectedMessages = [],
+  globalFilterValue = '',
+  onFilterChange,
+  onBulkCopy,
+  onBulkMove,
+  onBulkDelete,
+  bulkOperationInProgress = false
+}) {
   const { type: sourceType, sourceName, config } = sourceDefinition;
   const { id: brokerId } = config || {};
 
@@ -378,22 +393,43 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
     return `${formatNumber(count)} messages | Size: ${formatMegabytes(spoolSize)} | Utilization: ${utilization}% | Owner: ${owner} | Permission: ${permission} | Type: ${accessType} | Partitions: ${partitions}`;
   };
 
+  const partitioned = isPartitionedQueue();
+  const hasSelection = selectedMessages.length > 0;
+  const showCopyMove = sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC;
+  const buttonsDisabled = !hasSelection || bulkOperationInProgress;
+
   return (
-    <Toolbar className={classes.messageListToolbar}
-      start={() => (
-        <div>
-          <h3>{displayTitle()}</h3>
-          {queueDetails && (sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC) && (
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-color-secondary)', marginTop: '0.25rem' }}>
-              {displayDetails()}
-            </div>
-          )}
-        </div>
-      )}
-      end={() => {
-        const partitioned = isPartitionedQueue();
-        return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Row 1: Queue Name and Details (left) | Search (right) */}
+      <Toolbar 
+        className={`${classes.messageListToolbar} ${classes.messageListToolbarFirstRow}`}
+        start={() => (
+          <div>
+            <h3>{displayTitle()}</h3>
+            {queueDetails && (sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC) && (
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-color-secondary)', marginTop: '0.25rem' }}>
+                {displayDetails()}
+              </div>
+            )}
+          </div>
+        )}
+        end={() => (
+          <IconField iconPosition="left">
+            <InputIcon className="pi pi-search" />
+            <InputText 
+              value={globalFilterValue} 
+              onChange={onFilterChange} 
+              placeholder="Message Search" 
+            />
+          </IconField>
+        )}
+      />
+      
+      {/* Row 2: Sort Order | Sort Order Additional Input (left) | N selected | Actions | Refresh (right) */}
+      <Toolbar className={`${classes.messageListToolbar} ${classes.messageListToolbarSecondRow}`}
+        start={() => (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {/* Sort Order */}
             <label>Sort Order:</label>
             <Dropdown 
               value={browseMode} 
@@ -402,6 +438,75 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
               optionLabel="name" 
               disabled={partitioned}
             />
+            
+            {/* Sort Order Additional Input (Date range / Message ID) */}
+            {isReplayBasedMode(browseMode) && (
+              (browseMode === BROWSE_MODE.HEAD) ?
+              null :
+              (browseMode === BROWSE_MODE.TAIL) ?
+                null :
+                (browseMode === BROWSE_MODE.MSGID) ?
+                  <InputText 
+                    placeholder="ID or RGMID" 
+                    value={msgId} 
+                    onChange={handleMsgIdTextChange} 
+                    disabled={partitioned}
+                  /> :
+                  (browseMode === BROWSE_MODE.TIME) ?
+                    <Calendar 
+                      placeholder="Beginning of log" 
+                      visible={calendarVisible} 
+                      value={dateTime} 
+                      showTime
+                      onVisibleChange={handleCalendarVisibleChangle} 
+                      onChange={handleCalendarChange} 
+                      minDate={minDate} 
+                      maxDate={maxDate}
+                      disabled={partitioned}
+                    /> :
+                    null
+            )}
+          </div>
+        )}
+        end={() => (
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            {/* N selected */}
+            <span className="text-sm font-medium">{selectedMessages.length} selected</span>
+            
+            {/* Actions */}
+            {showCopyMove && (
+              <>
+                <Button
+                  icon="pi pi-copy"
+                  severity="secondary"
+                  size="small"
+                  onClick={onBulkCopy}
+                  disabled={buttonsDisabled}
+                  tooltip="Copy selected messages"
+                  tooltipOptions={{ position: 'bottom' }}
+                />
+                <Button
+                  icon="pi pi-arrow-right"
+                  severity="warning"
+                  size="small"
+                  onClick={onBulkMove}
+                  disabled={buttonsDisabled}
+                  tooltip="Move selected messages"
+                  tooltipOptions={{ position: 'bottom' }}
+                />
+              </>
+            )}
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              size="small"
+              onClick={onBulkDelete}
+              disabled={buttonsDisabled}
+              tooltip="Delete selected messages"
+              tooltipOptions={{ position: 'bottom' }}
+            />
+            
+            {/* Refresh */}
             <Button 
               icon="pi pi-refresh" 
               onClick={handleRefreshClick} 
@@ -410,37 +515,9 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
               tooltip="Refresh"
               tooltipOptions={{ position: 'bottom' }}
             />
-            {
-              isReplayBasedMode(browseMode) && (
-                (browseMode === BROWSE_MODE.HEAD) ?
-                null :
-                (browseMode === BROWSE_MODE.TAIL) ?
-                  null :
-                  (browseMode === BROWSE_MODE.MSGID) ?
-                    <InputText 
-                      placeholder="ID or RGMID" 
-                      value={msgId} 
-                      onChange={handleMsgIdTextChange} 
-                      disabled={partitioned}
-                    /> :
-                    (browseMode === BROWSE_MODE.TIME) ?
-                      <Calendar 
-                        placeholder="Beginning of log" 
-                        visible={calendarVisible} 
-                        value={dateTime} 
-                        showTime
-                        onVisibleChange={handleCalendarVisibleChangle} 
-                        onChange={handleCalendarChange} 
-                        minDate={minDate} 
-                        maxDate={maxDate}
-                        disabled={partitioned}
-                      /> :
-                      null
-              )
-            }
           </div>
-        );
-      }}
-    />
+        )}
+      />
+    </div>
   );
 }

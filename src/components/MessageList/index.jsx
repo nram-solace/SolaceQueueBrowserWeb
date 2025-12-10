@@ -435,91 +435,6 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     }
   };
 
-  const actionButtonsBody = (rowData) => {
-    // Only show action buttons if we have a valid config
-    if (!config) {
-      return null;
-    }
-
-    // Only show copy/move for queues
-    const showCopyMove = type === SOURCE_TYPE.QUEUE || type === SOURCE_TYPE.BASIC;
-    
-    return (
-      <div style={{ display: 'flex', gap: '0.25rem', justifyContent: 'center' }}>
-        {showCopyMove && (
-          <>
-            <Button
-              icon="pi pi-copy"
-              severity="secondary"
-              text
-              rounded
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCopyMessage(rowData);
-              }}
-              aria-label="Copy message"
-              tooltip="Copy message"
-              tooltipOptions={{ position: 'top' }}
-            />
-            <Button
-              icon="pi pi-arrow-right"
-              severity="warning"
-              text
-              rounded
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMoveMessage(rowData);
-              }}
-              aria-label="Move message"
-              tooltip="Move message"
-              tooltipOptions={{ position: 'top' }}
-            />
-          </>
-        )}
-        <Button
-          icon="pi pi-trash"
-          severity="danger"
-          text
-          rounded
-          size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleDeleteMessage(rowData);
-          }}
-          aria-label="Delete message"
-          tooltip="Delete message"
-          tooltipOptions={{ position: 'top' }}
-        />
-      </div>
-    );
-  };
-
-  const deleteActionBody = (rowData) => {
-    // Only show delete button if we have a valid config
-    if (!config) {
-      return null;
-    }
-    
-    return (
-      <Button
-        icon="pi pi-trash"
-        severity="danger"
-        text
-        rounded
-        size="small"
-        onClick={(e) => {
-          e.stopPropagation();
-          handleDeleteMessage(rowData);
-        }}
-        aria-label="Delete message"
-        tooltip="Delete message"
-        tooltipOptions={{ position: 'top' }}
-      />
-    );
-  };
-
   const messageStatus = (message) => {
     return message.payload !== undefined ? null : (
       <i className="pi pi-question-circle text-yellow-500"></i>
@@ -561,54 +476,8 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     return '';
   };
 
-  const ListHeader = () => {
-    const hasSelection = selectedMessages.length > 0;
-    const showCopyMove = type === SOURCE_TYPE.QUEUE || type === SOURCE_TYPE.BASIC;
-    const buttonsDisabled = !hasSelection || bulkOperationInProgress;
-    
-    return (
-      <div className="flex justify-content-between align-items-center">
-        <div className="flex align-items-center gap-2">
-          {showCopyMove && (
-            <>
-              <Button
-                icon="pi pi-copy"
-                severity="secondary"
-                size="small"
-                onClick={handleBulkCopy}
-                disabled={buttonsDisabled}
-                tooltip="Copy selected messages"
-                tooltipOptions={{ position: 'bottom' }}
-              />
-              <Button
-                icon="pi pi-arrow-right"
-                severity="warning"
-                size="small"
-                onClick={handleBulkMove}
-                disabled={buttonsDisabled}
-                tooltip="Move selected messages"
-                tooltipOptions={{ position: 'bottom' }}
-              />
-            </>
-          )}
-          <Button
-            icon="pi pi-trash"
-            severity="danger"
-            size="small"
-            onClick={handleBulkDelete}
-            disabled={buttonsDisabled}
-            tooltip="Delete selected messages"
-            tooltipOptions={{ position: 'bottom' }}
-          />
-          <span className="text-sm font-medium">{selectedMessages.length} selected</span>
-        </div>
-        <IconField iconPosition="left">
-          <InputIcon className="pi pi-search" />
-          <InputText value={globalFilterValue} onChange={handleFilterChange} placeholder="Message Search" />
-        </IconField>
-      </div>
-    );
-  };
+  // ListHeader is now integrated into MessageListToolbar Row 2
+  const ListHeader = () => null;
 
   const ListFooter = () => {
     return (
@@ -934,7 +803,19 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   return (
     (sourceName) ? (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-        <MessageListToolbar sourceDefinition={sourceDefinition} minTime={replayLogTimeRange.min} maxTime={replayLogTimeRange.max} onChange={handleBrowseFromChange} />
+        <MessageListToolbar 
+          sourceDefinition={sourceDefinition} 
+          minTime={replayLogTimeRange.min} 
+          maxTime={replayLogTimeRange.max} 
+          onChange={handleBrowseFromChange}
+          selectedMessages={selectedMessages}
+          globalFilterValue={globalFilterValue}
+          onFilterChange={handleFilterChange}
+          onBulkCopy={handleBulkCopy}
+          onBulkMove={handleBulkMove}
+          onBulkDelete={handleBulkDelete}
+          bulkOperationInProgress={bulkOperationInProgress}
+        />
         <div style={{ flex: '1', overflow: 'hidden' }}>
           <DataTable
             className={classes.messageListTable}
@@ -963,7 +844,6 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
             <Column field="headers.applicationMessageType" header="ApplicationMsgType" body ={(rowData) => rowData.headers?.applicationMessageType ?? 'Not Available' } />
             <Column body={formatDateTime} header="SpoolTime" />
             <Column field="meta.attachmentSize" header="MsgSize(B)" />
-            <Column body={actionButtonsBody} header="Actions" style={{ width: (type === SOURCE_TYPE.QUEUE || type === SOURCE_TYPE.BASIC) ? '180px' : '80px' }} />
           </DataTable>
         </div>
         <ConfirmDialog />
