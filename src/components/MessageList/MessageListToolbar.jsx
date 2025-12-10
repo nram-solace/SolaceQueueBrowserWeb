@@ -158,10 +158,16 @@ export default function MessageListToolbar({ sourceDefinition, minTime, maxTime,
       const partitions = queueDetails.partitionCount ?? 0;
       
       if (partitions > 0) {
-        // Partitioned queue - show dialog if we haven't shown it for this queue yet
+        // Partitioned queue - clear message list immediately
+        if (queueDetailsLoadedFor.current !== sourceName) {
+          queueDetailsLoadedFor.current = sourceName;
+          // Clear messages for partitioned queue
+          onChange({ browseMode: null, clearMessages: true });
+        }
+        
+        // Show dialog if we haven't shown it for this queue yet
         if (partitionedDialogShownFor.current !== sourceName) {
           partitionedDialogShownFor.current = sourceName;
-          queueDetailsLoadedFor.current = sourceName;
           confirmDialog({
             message: 'Message browsing is not supported for partitioned queues. Please select a non-partitioned queue.',
             header: 'Partitioned Queue Not Supported',

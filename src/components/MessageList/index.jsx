@@ -50,6 +50,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   const [pendingBulkOperation, setPendingBulkOperation] = useState(null); // 'copy', 'move', or 'delete'
   const [currentBulkOperationType, setCurrentBulkOperationType] = useState(null); // Stores operation type for result dialog
   const [abortOnError, setAbortOnError] = useState(false);
+  const [suppressAutoLoad, setSuppressAutoLoad] = useState(false); // Flag to suppress automatic message loading
 
   const loadMessages = async (loader) => {
     setIsLoading(true);
@@ -66,12 +67,32 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     setIsLoading(false);
   };
 
+  const handleBrowseFromChange = (browseFrom) => {
+    // Handle clearMessages directly in MessageList
+    if (browseFrom && browseFrom.clearMessages) {
+      setMessages([]);
+      setSelectedMessages([]);
+      setSuppressAutoLoad(true); // Suppress automatic loading for partitioned queues
+      // Don't pass clearMessages to parent, just handle browseMode
+      if (browseFrom.browseMode !== undefined) {
+        onBrowseFromChange({ browseMode: browseFrom.browseMode });
+      }
+      return;
+    }
+    // Normal browse from change - re-enable auto loading
+    setSuppressAutoLoad(false);
+    onBrowseFromChange(browseFrom);
+  };
+
   useEffect(() => {
     browser.getReplayTimeRange().then(range => setReplayLogTimeRange(range));
     setMessages([]);
     setSelectedMessages([]); // Clear selection when browser changes
-    loadMessages(() => browser.getFirstPage());
-  }, [browser]);
+    // Only load messages if not suppressed (for partitioned queues)
+    if (!suppressAutoLoad) {
+      loadMessages(() => browser.getFirstPage());
+    }
+  }, [browser, suppressAutoLoad]);
 
   const handleBulkSelection = (e) => {
     // Handle multi-select for bulk operations
@@ -913,7 +934,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   return (
     (sourceName) ? (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
-        <MessageListToolbar sourceDefinition={sourceDefinition} minTime={replayLogTimeRange.min} maxTime={replayLogTimeRange.max} onChange={onBrowseFromChange} />
+        <MessageListToolbar sourceDefinition={sourceDefinition} minTime={replayLogTimeRange.min} maxTime={replayLogTimeRange.max} onChange={handleBrowseFromChange} />
         <div style={{ flex: '1', overflow: 'hidden' }}>
           <DataTable
             className={classes.messageListTable}
