@@ -1,7 +1,7 @@
 /**
  * Vercel Serverless Function to proxy SEMP requests
+ * Catch-all handler for /api/semp-proxy/*
  * This bypasses CORS restrictions by making server-side requests
- * Dynamic route [...path] captures all paths after /api/semp-proxy/
  */
 
 export default async function handler(req, res) {
@@ -9,8 +9,7 @@ export default async function handler(req, res) {
   console.log('🔍 Proxy handler called:', {
     method: req.method,
     url: req.url,
-    query: req.query,
-    headers: Object.keys(req.headers)
+    query: req.query
   });
 
   // Handle CORS preflight
@@ -38,37 +37,37 @@ export default async function handler(req, res) {
       });
     }
 
-    // Get the path from Vercel's dynamic route parameter
-    // The [...path] captures everything after /api/semp-proxy/
-    const pathSegments = req.query.path || [];
-    let path = '/';
+    // Extract path from req.url
+    // req.url will be like: /api/semp-proxy/SEMP/v2/monitor/...?select=...
+    // Remove /api/semp-proxy prefix and any query params Vercel might add
+    let urlPath = req.url;
     
-    if (Array.isArray(pathSegments) && pathSegments.length > 0) {
-      path = '/' + pathSegments.join('/');
-    } else if (pathSegments && typeof pathSegments === 'string') {
-      path = '/' + pathSegments;
+    // Remove /api/semp-proxy prefix
+    if (urlPath.startsWith('/api/semp-proxy')) {
+      urlPath = urlPath.replace(/^\/api\/semp-proxy/, '') || '/';
     }
     
-    // Extract original query string from req.url, but remove the 'path' parameter
-    // that Vercel adds when using dynamic routes
+    // Split path and query string
+    const [path, queryPart] = urlPath.split('?');
+    
+    // Clean the path - ensure it starts with /
+    const cleanPath = path.startsWith('/') ? path : '/' + path;
+    
+    // Parse and clean query string - remove any Vercel-added params
     let queryString = '';
-    if (req.url.includes('?')) {
-      const urlParts = req.url.split('?');
-      if (urlParts.length > 1) {
-        const queryParams = new URLSearchParams(urlParts.slice(1).join('?'));
-        // Remove the 'path' parameter that Vercel adds
-        queryParams.delete('path');
-        // Reconstruct query string without the path parameter
-        const cleanQuery = queryParams.toString();
-        if (cleanQuery) {
-          queryString = '?' + cleanQuery;
-        }
+    if (queryPart) {
+      const queryParams = new URLSearchParams(queryPart);
+      // Remove any Vercel-specific query params that might interfere
+      queryParams.delete('path');
+      queryParams.delete('_vercel');
+      
+      const cleanQuery = queryParams.toString();
+      if (cleanQuery) {
+        queryString = '?' + cleanQuery;
       }
     }
     
-    const fullPath = path + queryString;
-    
-    // Construct full target URL
+    const fullPath = cleanPath + queryString;
     const targetUrl = `${targetHeader}${fullPath}`;
 
     console.log(`🔄 Proxying SEMP request: ${req.method} ${fullPath}`);
@@ -86,7 +85,7 @@ export default async function handler(req, res) {
       brokerHeaders['Authorization'] = req.headers.authorization;
     }
 
-    // Forward other relevant headers (excluding host-related and our custom headers)
+    // Forward other relevant headers
     const headersToForward = ['X-Requested-With', 'User-Agent'];
     headersToForward.forEach(header => {
       if (req.headers[header.toLowerCase()]) {
@@ -203,4 +202,3 @@ export default async function handler(req, res) {
     });
   }
 }
-
