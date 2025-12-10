@@ -19,16 +19,20 @@ function BasePanel({ header, children }) {
 
 const LeftPanel = (props) => props.children;
 const CenterPanel = (props) => props.children;
-const RightTopPanel= (props) => BasePanel(props);
-const RightBottomPanel = (props) => BasePanel(props);
+const RightPanel1 = (props) => BasePanel(props);
+const RightPanel2 = (props) => BasePanel(props);
+const RightPanel3 = (props) => BasePanel(props);
+const RightPanel4 = (props) => BasePanel(props);
 
 function RootLayout({ children }) {
   const nodes = React.Children.toArray(children);
 
   const leftPanel = nodes.find(node => node.type === LeftPanel);
   const centerPanel = nodes.find(node => node.type === CenterPanel);
-  const rightTopPanel = nodes.find(node => node.type === RightTopPanel);
-  const rightBottomPanel = nodes.find(node => node.type === RightBottomPanel);
+  const rightPanel1 = nodes.find(node => node.type === RightPanel1);
+  const rightPanel2 = nodes.find(node => node.type === RightPanel2);
+  const rightPanel3 = nodes.find(node => node.type === RightPanel3);
+  const rightPanel4 = nodes.find(node => node.type === RightPanel4);
     
   return (
     <Splitter className="h-full">
@@ -36,14 +40,24 @@ function RootLayout({ children }) {
       <SplitterPanel size={50}>{centerPanel}</SplitterPanel>
       <SplitterPanel size={25}>
         <Splitter style={{ height: '100%', width: '100%' }} layout="vertical">
-          <SplitterPanel size={50}>{rightTopPanel}</SplitterPanel>
-          <SplitterPanel size={50}>{rightBottomPanel}</SplitterPanel>
+          <SplitterPanel size={50}>
+            {rightPanel1}
+          </SplitterPanel>
+          <SplitterPanel size={20}>
+            {rightPanel2}
+          </SplitterPanel>
+          <SplitterPanel size={15}>
+            {rightPanel3}
+          </SplitterPanel>
+          <SplitterPanel size={15}>
+            {rightPanel4}
+          </SplitterPanel>
         </Splitter>
       </SplitterPanel>
     </Splitter>
   );
 }
 
-Object.assign(RootLayout, { LeftPanel, CenterPanel, RightTopPanel, RightBottomPanel });
+Object.assign(RootLayout, { LeftPanel, CenterPanel, RightPanel1, RightPanel2, RightPanel3, RightPanel4 });
 
 export default RootLayout;

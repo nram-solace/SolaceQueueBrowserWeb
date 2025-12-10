@@ -9,7 +9,9 @@ import RootLayout from './components/RootLayout';
 import TreeView from './components/BrokerQueueTreeView';
 import MessageList from './components/MessageList';
 import MessagePayloadView from './components/MessagePayloadView';
-import MessageHeaderView from './components/MessageHeaderView';
+import MessageHeadersView from './components/MessageHeadersView';
+import MessageUserPropertiesView from './components/MessageUserPropertiesView';
+import MessageMetaView from './components/MessageMetaView';
 
 import 'primeflex/primeflex.css';
 import 'primeicons/primeicons.css';
@@ -57,12 +59,18 @@ export default function App() {
               onMessageSelect={handleMessageSelect} 
             />
           </RootLayout.CenterPanel>
-          <RootLayout.RightTopPanel header="Payload">
+          <RootLayout.RightPanel1 header="Payload">
             <MessagePayloadView message={selectedMessage} />
-          </RootLayout.RightTopPanel>
-          <RootLayout.RightBottomPanel header="Headers">
-            <MessageHeaderView message={selectedMessage} />
-          </RootLayout.RightBottomPanel>
+          </RootLayout.RightPanel1>
+          <RootLayout.RightPanel2 header="Headers">
+            <MessageHeadersView message={selectedMessage} />
+          </RootLayout.RightPanel2>
+          <RootLayout.RightPanel3 header="UserProperties">
+            <MessageUserPropertiesView message={selectedMessage} />
+          </RootLayout.RightPanel3>
+          <RootLayout.RightPanel4 header="Meta">
+            <MessageMetaView message={selectedMessage} />
+          </RootLayout.RightPanel4>
         </RootLayout>
       </>
   );
