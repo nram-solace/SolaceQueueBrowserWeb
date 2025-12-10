@@ -34,6 +34,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   const actionApiClient = useRef(new ActionApiClient());
   const bulkOperationManager = useRef(new BulkOperationManager());
   const cancelTokenRef = useRef(null);
+  const toolbarRef = useRef(null);
   
   // Individual message operations
   const [queueDialogVisible, setQueueDialogVisible] = useState(false);
@@ -220,6 +221,9 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       // Reload the first page to ensure we see the updated message list
       await loadMessages(() => browser.getFirstPage());
 
+      // Refresh queue summary to reflect new message count
+      toolbarRef.current?.refreshQueueDetails?.();
+
       // Clear selection if deleted message was selected
       if (selectedMessage?.meta?.msgId === msgId) {
         onMessageSelect?.(null);
@@ -395,6 +399,8 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
           });
           setIsLoading(false);
           await loadMessages(() => browser.getFirstPage());
+          // Refresh queue summary even on partial success (message count may have changed)
+          toolbarRef.current?.refreshQueueDetails?.();
           return;
         }
       }
@@ -410,6 +416,11 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
       // Refresh the message list
       await loadMessages(() => browser.getFirstPage());
+
+      // Refresh queue summary to reflect new message count (only for move operations)
+      if (operation === 'move') {
+        toolbarRef.current?.refreshQueueDetails?.();
+      }
 
       // Clear selection if the moved/copied message was selected
       if (selectedMessage?.meta?.replicationGroupMsgId === replicationGroupMsgId) {
@@ -637,6 +648,9 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       // Refresh message list
       await loadMessages(() => browser.getFirstPage());
       
+      // Refresh queue summary to reflect new message count
+      toolbarRef.current?.refreshQueueDetails?.();
+      
       // Clear selection
       setSelectedMessages([]);
     } catch (err) {
@@ -755,6 +769,9 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       // Refresh message list
       await loadMessages(() => browser.getFirstPage());
       
+      // Refresh queue summary to reflect new message count
+      toolbarRef.current?.refreshQueueDetails?.();
+      
       // Clear selection (messages moved from source)
       setSelectedMessages([]);
     } catch (err) {
@@ -804,6 +821,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     (sourceName) ? (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%' }}>
         <MessageListToolbar 
+          ref={toolbarRef}
           sourceDefinition={sourceDefinition} 
           minTime={replayLogTimeRange.min} 
           maxTime={replayLogTimeRange.max} 

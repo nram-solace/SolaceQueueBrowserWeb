@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
 
 import { Button } from 'primereact/button';
 import { Calendar } from 'primereact/calendar';
@@ -14,7 +14,7 @@ import { useSempApi } from '../../providers/SempClientProvider';
 
 import classes from './styles.module.css';
 
-export default function MessageListToolbar({ 
+const MessageListToolbar = forwardRef(function MessageListToolbar({ 
   sourceDefinition, 
   minTime, 
   maxTime, 
@@ -27,7 +27,7 @@ export default function MessageListToolbar({
   onBulkMove,
   onBulkDelete,
   bulkOperationInProgress = false
-}) {
+}, ref) {
   const { type: sourceType, sourceName, config } = sourceDefinition;
   const { id: brokerId } = config || {};
 
@@ -36,6 +36,38 @@ export default function MessageListToolbar({
   const [queueDetails, setQueueDetails] = useState(null);
   const partitionedDialogShownFor = useRef(null); // Track which queue we've shown the dialog for
   const queueDetailsLoadedFor = useRef(null); // Track which queue we've loaded details for
+
+  // Fetch queue message count and details
+  const fetchQueueDetails = async () => {
+    // Only fetch for queue types (QUEUE or BASIC)
+    if ((sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC) && config && sourceName) {
+      try {
+        const response = await sempApi.getClient(config).getMsgVpnQueue(config.vpn, sourceName);
+        // The current message count is in collections.msgs.count
+        const count = response.collections?.msgs?.count ?? null;
+        setMessageCount(count);
+        
+        // Store queue details for the second line
+        if (response.data) {
+          setQueueDetails(response.data);
+        } else {
+          setQueueDetails(null);
+        }
+      } catch (err) {
+        console.error('Error fetching queue details:', err);
+        setMessageCount(null);
+        setQueueDetails(null);
+      }
+    } else {
+      setMessageCount(null);
+      setQueueDetails(null);
+    }
+  };
+
+  // Expose refresh function to parent component
+  useImperativeHandle(ref, () => ({
+    refreshQueueDetails: fetchQueueDetails
+  }));
 
   const [sourceLabel, browseModes] =
     (sourceType === SOURCE_TYPE.BASIC) ? [
@@ -132,32 +164,6 @@ export default function MessageListToolbar({
 
   // Fetch queue message count and details when a queue is selected
   useEffect(() => {
-    const fetchQueueDetails = async () => {
-      // Only fetch for queue types (QUEUE or BASIC)
-      if ((sourceType === SOURCE_TYPE.QUEUE || sourceType === SOURCE_TYPE.BASIC) && config && sourceName) {
-        try {
-          const response = await sempApi.getClient(config).getMsgVpnQueue(config.vpn, sourceName);
-          // The current message count is in collections.msgs.count
-          const count = response.collections?.msgs?.count ?? null;
-          setMessageCount(count);
-          
-          // Store queue details for the second line
-          if (response.data) {
-            setQueueDetails(response.data);
-          } else {
-            setQueueDetails(null);
-          }
-        } catch (err) {
-          console.error('Error fetching queue details:', err);
-          setMessageCount(null);
-          setQueueDetails(null);
-        }
-      } else {
-        setMessageCount(null);
-        setQueueDetails(null);
-      }
-    };
-
     fetchQueueDetails();
   }, [sourceType, sourceName, config]);
 
@@ -520,4 +526,6 @@ export default function MessageListToolbar({
       />
     </div>
   );
-}
+});
+
+export default MessageListToolbar;
