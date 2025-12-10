@@ -954,7 +954,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
             header={ListHeader}
             footer={ListFooter}
             loading={isLoading}
-            emptyMessage="No messages available"
+            emptyMessage="No messages to browse or Browsing not supported."
           >
             <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
             <Column body={messageStatus} />
