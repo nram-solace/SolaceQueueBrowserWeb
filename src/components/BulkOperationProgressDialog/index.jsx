@@ -36,9 +36,9 @@ export default function BulkOperationProgressDialog({
     >
       <div className={classes.content}>
         <div className={classes.statusText}>{status}</div>
-        <ProgressBar value={progress} className={classes.progressBar} />
+        <ProgressBar value={progress} className={classes.progressBar} showValue={false} />
         <div className={classes.progressText}>
-          {current} of {total} messages processed ({Math.round(progress)}%)
+          {current} of {total} messages processed
         </div>
       </div>
     </Dialog>

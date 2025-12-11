@@ -91,7 +91,7 @@ export default function BulkOperationResultDialog({
             </div>
           )}
           <div className={classes.summaryRow}>
-            <span className={classes.summaryLabel}>Success Rate:</span>
+            <span className={classes.summaryLabel}>% Complete:</span>
             <span className={classes.summaryValue}>{successRate}%</span>
           </div>
         </div>
