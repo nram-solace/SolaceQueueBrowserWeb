@@ -142,9 +142,11 @@ class BaseBrowser {
       this.sempClient = this.sempApi?.getClient(config);
     }
 
-    // Check browse permissions before proceeding
-    // This validates that the messaging user has permission to browse the queue
-    await this.checkBrowsePermissions();
+    // Note: We don't pre-check permissions via SEMP because:
+    // 1. SEMP permissions may not match broker's actual bind-time permission checks
+    // 2. The broker will reject the connection if permissions are insufficient
+    // 3. Pre-checking can cause false positives (e.g., queue has "consume" permission but broker initially rejects)
+    // We rely on the broker's actual response to determine permission errors
 
     if (this.solclientFactory) {
       this.session = this.solclientFactory.createAsyncSession({
@@ -635,21 +637,43 @@ class BasicQueueBrowser extends BaseBrowser {
     this.assertState(BROWSER_STATE.OPENING);
 
     const queueDescriptor = { name: queueName, type: solace.QueueType.QUEUE };
-    this.queueBrowser = this.session.createQueueBrowser({ queueDescriptor });
     
-    try {
-      await this.queueBrowser.connect();
-    } catch (err) {
-      // Check if this is a permission error from the broker
-      if (err.isPermissionError || 
-          (err.message && err.message.includes('Permission Not Allowed')) ||
-          (err.message && err.message.includes('Permission'))) {
-        // Format error with messaging username (matching user's requested format)
-        const username = clientUsername || 'unknown';
-        throw new Error(`The messaging user "${username}" does not have permissions to browse this Queue.`);
+    // Retry logic to handle transient connection failures
+    // Some brokers may initially reject the connection but allow it on retry
+    const maxRetries = 2;
+    let lastError = null;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        this.queueBrowser = this.session.createQueueBrowser({ queueDescriptor });
+        await this.queueBrowser.connect();
+        // Success - break out of retry loop
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
+        
+        // Check if this is a permission error from the broker - be specific to avoid false positives
+        // Only treat as permission error if explicitly "Permission Not Allowed"
+        const isPermissionError = err.isPermissionError || 
+            (err.message && err.message.includes('Permission Not Allowed'));
+        
+        if (isPermissionError) {
+          // Permission errors are definitive - don't retry
+          const username = clientUsername || 'unknown';
+          throw new Error(`The messaging user "${username}" does not have permissions to browse this Queue.`);
+        }
+        
+        // For other errors, retry if we have attempts left
+        if (attempt < maxRetries) {
+          // Wait a bit before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt)));
+          continue;
+        }
+        
+        // Out of retries - throw the last error
+        throw err;
       }
-      // Re-throw other errors as-is
-      throw err;
     }
     
     this.assertState(BROWSER_STATE.OPENING);
@@ -759,12 +783,12 @@ export function useQueueBrowsing() {
       setBrowser(newBrowser);
     } catch (err) {
       // Check if this is a permission error (expected behavior, user will be notified via popup)
+      // Be specific - only treat as permission error if explicitly about permissions
       const errorMessage = err.message || String(err);
       const isPermissionError = 
         errorMessage.includes('does not have permissions') ||
         errorMessage.includes('Permission Not Allowed') ||
-        errorMessage.includes('Access denied') ||
-        errorMessage.includes('Permission');
+        errorMessage.includes('Access denied');
       
       if (isPermissionError) {
         // Permission errors are expected and user is notified via popup, so log at debug level

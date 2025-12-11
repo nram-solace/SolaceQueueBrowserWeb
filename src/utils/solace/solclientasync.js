@@ -138,12 +138,12 @@ function createAsyncSession(sessionProperties) {
           const errorStr = errorEvent.str || errorEvent.message || errorEvent.toString() || '';
           const responseCode = errorEvent.responseCode;
           
-          // Check for permission errors
+          // Check for permission errors - be specific to avoid false positives
+          // Only treat as permission error if explicitly "Permission Not Allowed"
           const isPermissionError = 
             errorStr.includes('Permission Not Allowed') ||
-            (errorStr.includes('Permission') && errorStr.includes('Not Allowed')) ||
-            responseCode === solace.SolclientErrorSubcode.INVALID_OPERATION ||
-            (errorInfo && errorInfo.reason && errorInfo.reason.includes('Permission'));
+            (errorInfo && errorInfo.reason && errorInfo.reason.includes('Permission Not Allowed')) ||
+            (errorInfo && errorInfo.reason && errorInfo.reason.includes('Permission') && errorInfo.reason.includes('Not Allowed'));
           
           if (isPermissionError) {
             const error = new Error(`Permission Not Allowed: The messaging user does not have permissions to browse this Queue.`);
