@@ -36,9 +36,9 @@ function RootLayout({ children }) {
     
   return (
     <Splitter className="h-full">
-      <SplitterPanel size={25}>{leftPanel}</SplitterPanel>
+      <SplitterPanel size={20}>{leftPanel}</SplitterPanel>
       <SplitterPanel size={50}>{centerPanel}</SplitterPanel>
-      <SplitterPanel size={25}>
+      <SplitterPanel size={30}>
         <Splitter style={{ height: '100%', width: '100%' }} layout="vertical">
           <SplitterPanel size={50}>
             {rightPanel1}
