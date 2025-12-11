@@ -16,7 +16,9 @@ export function useSempApi(ApiCtor = AllApi) {
   return {
     getClient: (opts) => {
       const client = new ApiClient();
-      const { useTls, hostName, sempPort, sempUsername, sempPassword } = opts;
+      // Support both sempUseTls (new) and useTls (legacy) for backward compatibility
+      const useTls = opts.sempUseTls !== undefined ? opts.sempUseTls : opts.useTls;
+      const { hostName, sempPort, sempUsername, sempPassword } = opts;
       Object.assign(client, { 
         basePath: `${(useTls ? 'https': 'http')}://${hostName}:${sempPort}/SEMP/v2/monitor`
       });

@@ -1,5 +1,5 @@
 .formDialog {
-  width: 400px;
+  width: 1000px;
 }
 
 .formField {
@@ -25,4 +25,91 @@
   display: inline-block;
   height: 100%;
   padding-top: 0.8rem;
+}
+
+.fieldLabel {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.vpnListContainer {
+  height: 100%;
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  background-color: var(--surface-ground);
+}
+
+.vpnListContainerNarrow {
+  min-height: 300px;
+  max-height: 500px;
+  overflow-y: auto;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  background-color: var(--surface-ground);
+}
+
+.vpnListItem {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+.vpnListItem:hover {
+  background-color: var(--surface-hover);
+}
+
+.twoColumnLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  align-items: start;
+}
+
+.twoColumnLayout > div:last-child {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.sectionDivider {
+  margin: 1.5rem 0;
+  border-top: 1px solid var(--surface-border);
+}
+
+.mainLayout {
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.vpnListContainerFullHeight {
+  flex: 1;
+  min-height: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid var(--surface-border);
+  border-radius: 6px;
+  padding: 0.5rem;
+  background-color: var(--surface-ground);
 }

@@ -279,7 +279,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     };
     return (
       <div className={`${options.className} ${classes.treeNodeLabel}`}>
-        <div style={{ flex: '1' }}>{node.label}</div>
+        <div style={{ flex: '1', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.label}</div>
         {node.data.onRefreshClick && (
           <i 
             className={`${node.data.refreshIcon} ${classes.toolIcon} ${classes.refreshIcon}`} 

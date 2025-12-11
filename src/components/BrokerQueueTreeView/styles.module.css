@@ -31,14 +31,19 @@
 
 .splitterPanel {
   overflow: hidden;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 /* Middle Panel: Buttons + Broker List */
 .middlePanel {
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
 }
 
 .buttonRow {
@@ -62,15 +67,21 @@
 .brokerListContainer {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  min-width: 0;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 /* Bottom Panel: Queue List */
 .bottomPanel {
   height: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -102,8 +113,12 @@
 .queueListContainer {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
+  min-width: 0;
   padding: 0.25rem 0;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .queueItem {
@@ -113,6 +128,10 @@
   cursor: pointer;
   user-select: none;
   gap: 0.5rem;
+  width: 100% !important;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .queueItem:hover {
@@ -135,6 +154,7 @@
 
 .queueLabel {
   flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -162,22 +182,32 @@
 }
 
 .tree {
-  width: 100%;
+  width: 100% !important;
   height: 100%;
   overflow: auto;
   user-select: none;
+  padding: 0 !important;
+  max-width: 100% !important;
+  min-width: 0;
 }
 
 .treeContainer {
   overflow-x: hidden;
-  margin: 1em 0;
+  margin: 0 !important;
+  padding: 0.5rem 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .treeNodeLabel {
   white-space: nowrap;
   display: flex;
-  width: 100%;
+  width: 100% !important;
+  min-width: 0;
   align-items: center;
+  padding: 0.25rem 1rem;
+  box-sizing: border-box;
+  flex: 1;
 }
 
 i.toolIcon {
