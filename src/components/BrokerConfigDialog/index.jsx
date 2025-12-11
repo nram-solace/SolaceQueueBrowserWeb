@@ -72,6 +72,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         sempUsername: '',
         sempPassword: '',
         environment: 'Other',
+        region: 'Unspecified',
         type: 'Generic',
         label: '',
         ...(config || {})
@@ -88,6 +89,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         sempUsername: '',
         sempPassword: '',
         environment: 'Other',
+        region: 'Unspecified',
         type: 'Generic',
         clientPort: '',
         useTls: true,
@@ -413,6 +415,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         sempUsername: values.sempUsername,
         sempPassword: values.sempPassword,
         environment: values.environment,
+        region: values.region || 'Unspecified',
         type: values.type
       };
       brokerEditor.save(brokerConfig);
@@ -612,10 +615,10 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
           </div>
         </div>
 
-        {/* Row 3: ENV | Type */}
+        {/* Row 3: ENV | Region | Type */}
         <div style={{display:'flex', gap: '0.6rem', marginBottom: '1rem'}}>
           <div style={{flex: '0 0 150px'}}>
-            <label htmlFor="environment" className={classes.fieldLabel}>ENV</label>
+            <label htmlFor="environment" className={classes.fieldLabel}>Environment</label>
             <Dropdown
               id="environment"
               value={values.environment || 'Other'}
@@ -624,6 +627,21 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
               optionLabel="label"
               optionValue="value"
               className={classes.formInput}
+              disabled={isLoadingVpns || isTestingConnection}
+            />
+          </div>
+          <div style={{flex: '0 0 150px'}}>
+            <label htmlFor="region" className={classes.fieldLabel}>Region/DC</label>
+            <InputText 
+              id="region" 
+              className={classes.formInput} 
+              value={values.region || 'Unspecified'} 
+              onChange={handleInputChange}
+              onClick={(e) => {
+                if ((values.region || 'Unspecified') === 'Unspecified') {
+                  setValues({ ...values, region: '' });
+                }
+              }}
               disabled={isLoadingVpns || isTestingConnection}
             />
           </div>
@@ -846,10 +864,10 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
                 </div>
               </div>
 
-              {/* Row 3: ENV | Type */}
+              {/* Row 3: ENV | Region | Type */}
               <div style={{display:'flex', gap: '0.6rem', marginBottom: '1rem'}}>
                 <div style={{flex: '0 0 150px'}}>
-                  <label htmlFor="environment" className={classes.fieldLabel}>ENV</label>
+                  <label htmlFor="environment" className={classes.fieldLabel}>Environment</label>
                   <Dropdown
                     id="environment"
                     value={values.environment || 'Other'}
@@ -858,6 +876,20 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
                     optionLabel="label"
                     optionValue="value"
                     className={classes.formInput}
+                  />
+                </div>
+                <div style={{flex: '0 0 150px'}}>
+                  <label htmlFor="region" className={classes.fieldLabel}>Region/DC</label>
+                  <InputText 
+                    id="region" 
+                    className={classes.formInput} 
+                    value={values.region || 'Unspecified'} 
+                    onChange={handleInputChange}
+                    onClick={(e) => {
+                      if ((values.region || 'Unspecified') === 'Unspecified') {
+                        setValues({ ...values, region: '' });
+                      }
+                    }}
                   />
                 </div>
                 <div style={{flex: '0 0 150px'}}>

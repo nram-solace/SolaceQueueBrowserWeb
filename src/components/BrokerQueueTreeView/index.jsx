@@ -33,7 +33,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [selectedBroker, setSelectedBroker] = useState(null);
   const [selectedQueueId, setSelectedQueueId] = useState(null);
   const [queueSearchTerm, setQueueSearchTerm] = useState('');
-  const [groupBy, setGroupBy] = useState('environment'); // null, 'environment', or 'type'
+  const [groupBy, setGroupBy] = useState('environment'); // null, 'environment', 'region', or 'type'
 
   const sempApi = useSempApi();
 
@@ -127,9 +127,9 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
 
   // Build broker nodes with optional grouping
   const buildBrokerNodes = () => {
-    // Only group if groupBy is explicitly 'environment' or 'type'
+    // Only group if groupBy is explicitly 'environment', 'region', or 'type'
     // Everything else (null, undefined, empty string, etc.) means no grouping
-    if (groupBy !== 'environment' && groupBy !== 'type') {
+    if (groupBy !== 'environment' && groupBy !== 'region' && groupBy !== 'type') {
       // No grouping: return flat list
       return brokers.map(config => ({
         id: config.id,
@@ -460,6 +460,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 options={[
                   { label: 'None', value: null },
                   { label: 'Environment', value: 'environment' },
+                  { label: 'Region/DC', value: 'region' },
                   { label: 'Type', value: 'type' }
                 ]}
                 optionLabel="label"
