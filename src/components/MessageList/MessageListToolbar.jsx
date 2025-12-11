@@ -396,7 +396,7 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
     const accessType = queueDetails.accessType || 'N/A';
     const partitions = queueDetails.partitionCount ?? 0;
 
-    return `${formatNumber(count)} messages | Size: ${formatMegabytes(spoolSize)} | Utilization: ${utilization}% | Owner: ${owner} | Permission: ${permission} | Type: ${accessType} | Partitions: ${partitions}`;
+    return `${formatNumber(count)} messages | Utilization: ${utilization}% | Size: ${formatMegabytes(spoolSize)}  | Owner: ${owner} | Permission: ${permission} | Type: ${accessType} | Partitions: ${partitions}`;
   };
 
   const partitioned = isPartitionedQueue();
