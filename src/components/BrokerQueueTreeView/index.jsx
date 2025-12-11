@@ -33,7 +33,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [selectedBroker, setSelectedBroker] = useState(null);
   const [selectedQueueId, setSelectedQueueId] = useState(null);
   const [queueSearchTerm, setQueueSearchTerm] = useState('');
-  const [groupBy, setGroupBy] = useState('environment'); // null, 'environment', 'region', or 'type'
+  const [groupBy, setGroupBy] = useState(null); // null, 'environment', 'region', or 'type'
 
   const sempApi = useSempApi();
 
@@ -125,6 +125,23 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     }
   };
 
+  // Format broker label as "Name - VPN"
+  const formatBrokerLabel = (config) => {
+    // Try to parse from displayName (format: "name:vpn")
+    if (config.displayName && config.displayName.includes(':')) {
+      const parts = config.displayName.split(':');
+      if (parts.length >= 2) {
+        return `${parts[0]} - ${parts[1]}`;
+      }
+    }
+    // Fallback: use name and vpn fields if available
+    if (config.name && config.vpn) {
+      return `${config.name} - ${config.vpn}`;
+    }
+    // Last resort: return displayName as-is
+    return config.displayName || '';
+  };
+
   // Build broker nodes with optional grouping
   const buildBrokerNodes = () => {
     // Only group if groupBy is explicitly 'environment', 'region', or 'type'
@@ -134,7 +151,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       return brokers.map(config => ({
         id: config.id,
         key: config.id,
-        label: config.displayName,
+        label: formatBrokerLabel(config),
         data: {
           type: 'broker',
           config
@@ -168,7 +185,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         children: groupBrokers.map(config => ({
           id: config.id,
           key: config.id,
-          label: config.displayName,
+          label: formatBrokerLabel(config),
           data: {
             type: 'broker',
             config
