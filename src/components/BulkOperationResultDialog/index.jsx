@@ -114,6 +114,7 @@ export default function BulkOperationResultDialog({
                     size="small"
                     scrollable
                     scrollHeight="200px"
+                    stripedRows
                   >
                     <Column field="messageId" header="Message ID" />
                     <Column field="error" header="Error" body={(rowData) => (
@@ -138,6 +139,7 @@ export default function BulkOperationResultDialog({
                     size="small"
                     scrollable
                     scrollHeight="200px"
+                    stripedRows
                   >
                     <Column field="messageId" header="Message ID" />
                     <Column field="error" header="Error" body={(rowData) => (

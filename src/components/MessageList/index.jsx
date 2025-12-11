@@ -835,6 +835,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
             onSelectionChange={handleBulkSelection}
             onRowClick={handleRowClick}
             rowClassName={getRowClassName}
+            stripedRows
             metaKeySelection={false}
             globalFilterFields={['filterField']}
             filters={filters}

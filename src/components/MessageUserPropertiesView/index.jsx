@@ -21,6 +21,7 @@ export default function MessageUserPropertiesView({ message }) {
       size="small"
       scrollable
       scrollHeight="flex"
+      stripedRows
       className={classes.messageTable}
     >
       <Column field="name" header="User Property" style={{ width: '40%' }} />

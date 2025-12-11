@@ -21,6 +21,7 @@ export default function MessageMetaView({ message }) {
       size="small"
       scrollable
       scrollHeight="flex"
+      stripedRows
       className={classes.messageTable}
     >
       <Column field="name" header="Meta Property" style={{ width: '40%' }} />

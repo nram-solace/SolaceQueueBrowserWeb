@@ -215,6 +215,7 @@ export default function SessionManagerDialog({ sessionManager, onHide, visible }
             loading={loading}
             emptyMessage="No saved sessions"
             size="small"
+            stripedRows
           >
             <Column field="name" header="Name" />
             <Column

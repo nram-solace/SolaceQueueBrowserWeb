@@ -21,6 +21,7 @@ export default function MessageHeadersView({ message }) {
       size="small"
       scrollable
       scrollHeight="flex"
+      stripedRows
       className={classes.messageTable}
     >
       <Column field="name" header="Header Property" style={{ width: '40%' }} />
