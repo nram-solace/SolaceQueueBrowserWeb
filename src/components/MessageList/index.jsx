@@ -582,19 +582,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     }
 
     confirmDialog({
-      message: (
-        <div>
-          <p>Are you sure you want to move {selectedMessages.length} message(s)? The messages will be deleted from the current queue.</p>
-          <div className="flex align-items-center gap-2 mt-3">
-            <Checkbox 
-              inputId="abortOnErrorMove" 
-              checked={abortOnError} 
-              onChange={(e) => setAbortOnError(e.checked)} 
-            />
-            <label htmlFor="abortOnErrorMove" className="text-sm">Stop on first error</label>
-          </div>
-        </div>
-      ),
+      message: `Are you sure you want to move ${selectedMessages.length} message(s)? The messages will be deleted from the current queue.`,
       header: 'Move Messages',
       icon: 'pi pi-exclamation-triangle',
       acceptClassName: 'p-button-warning',
