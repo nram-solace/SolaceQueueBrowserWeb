@@ -14,7 +14,6 @@ dist-ssr
 
 # Editor directories and files
 .vscode/*
-!.vscode/extensions.json
 .idea
 .DS_Store
 *.suo
@@ -28,6 +27,6 @@ dist-ssr
 .dev/**
 CLAUDE.md
 package-lock.json
-package-lock.json
 .vercel
+.vercelignore
 run.sh
