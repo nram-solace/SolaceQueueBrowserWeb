@@ -62,13 +62,13 @@ export default function App() {
           <RootLayout.RightPanel1 header="Payload">
             <MessagePayloadView message={selectedMessage} />
           </RootLayout.RightPanel1>
-          <RootLayout.RightPanel2 header="Headers">
+          <RootLayout.RightPanel2>
             <MessageHeadersView message={selectedMessage} />
           </RootLayout.RightPanel2>
-          <RootLayout.RightPanel3 header="UserProperties">
+          <RootLayout.RightPanel3>
             <MessageUserPropertiesView message={selectedMessage} />
           </RootLayout.RightPanel3>
-          <RootLayout.RightPanel4 header="Meta">
+          <RootLayout.RightPanel4>
             <MessageMetaView message={selectedMessage} />
           </RootLayout.RightPanel4>
         </RootLayout>

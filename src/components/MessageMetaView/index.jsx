@@ -23,7 +23,7 @@ export default function MessageMetaView({ message }) {
       scrollHeight="flex"
       className={classes.messageTable}
     >
-      <Column field="name" header="Property" style={{ width: '40%' }} />
+      <Column field="name" header="Meta Property" style={{ width: '40%' }} />
       <Column field="value" header="Value" body={(rowData) => (
         <span className={classes.valueCell}>{rowData.value}</span>
       )} />
