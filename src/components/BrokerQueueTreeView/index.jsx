@@ -53,6 +53,72 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       <QueueIcon size="16" className={iconColor} />;
   };
 
+  const buildQueueNodeList = (config, queues) => {
+    return queues
+      .filter((queue) => !queue.queueName.startsWith('#'))
+      .map((queue, n) => ({
+        id: `${config.id}/queue/${n}`,
+        key: `queue/${n}`,
+        label: queue.queueName,
+        data: {
+          type: config.testResult.replay ? 'queue' : 'basic',
+          toolIcon: '',
+          config,
+          sourceName: queue.queueName
+        },
+        icon: getQueueIcon(queue)
+      }));
+  };
+
+  const refreshQueuesForBroker = async (config, showToast = true) => {
+    if (!config.testResult?.connected) {
+      if (showToast) {
+        toast.current?.show({
+          severity: 'warn',
+          summary: 'Warning',
+          detail: `Broker "${config.displayName}" is not connected`
+        });
+      }
+      return false;
+    }
+
+    try {
+      const { data: queues } = await sempApi.getClient(config).getMsgVpnQueues(config.vpn, { count: 100 });
+      const queueNodeList = buildQueueNodeList(config, queues);
+      setQueuesListMap(prev => ({ ...prev, [config.id]: queueNodeList }));
+      if (showToast) {
+        toast.current?.show({
+          severity: 'success',
+          summary: 'Success',
+          detail: `Queues refreshed for "${config.displayName}"`
+        });
+      }
+      return true;
+    } catch (err) {
+      console.error('Failed to refresh queues:', err);
+      if (showToast) {
+        const errorDetail = err.response?.body?.meta?.error?.description || 
+                           err.message || 
+                           'Failed to refresh queues';
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error',
+          detail: errorDetail
+        });
+      }
+      return false;
+    }
+  };
+
+  const handleRefreshBrokerQueues = async (config) => {
+    setIsLoading(true);
+    try {
+      await refreshQueuesForBroker(config, true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const nodes = [...brokers.map(config => ({
     id: config.id,
     key: config.id,
@@ -61,6 +127,8 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       type: 'broker',
       toolIcon: 'pi pi-ellipsis-h',
       onToolClick: () => setBrokerForConfig(config),
+      refreshIcon: 'pi pi-refresh',
+      onRefreshClick: () => handleRefreshBrokerQueues(config),
       config
     },
     icon: getBrokerIcon(config.testResult),
@@ -96,23 +164,6 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     ]
   })),
   ];
-
-  const buildQueueNodeList = (config, queues) => {
-    return queues
-      .filter((queue) => !queue.queueName.startsWith('#'))
-      .map((queue, n) => ({
-        id: `${config.id}/queue/${n}`,
-        key: `queue/${n}`,
-        label: queue.queueName,
-        data: {
-          type: config.testResult.replay ? 'queue' : 'basic',
-          toolIcon: '',
-          config,
-          sourceName: queue.queueName
-        },
-        icon: getQueueIcon(queue)
-      }));
-  };
 
   const buildTopicNodeList = (config) => {
     const { replayTopics = [] } = config;
@@ -230,14 +281,27 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   };
 
   const nodeTemplate = (node, options) => {
-    const handleClick = (evt) => {
+    const handleToolClick = (evt) => {
       evt.stopPropagation();
       node.data.onToolClick && node.data.onToolClick();
+    };
+    const handleRefreshClick = (evt) => {
+      evt.stopPropagation();
+      node.data.onRefreshClick && node.data.onRefreshClick();
     };
     return (
       <div className={`${options.className} ${classes.treeNodeLabel}`}>
         <div style={{ flex: '1' }}>{node.label}</div>
-        <i className={`${node.data.toolIcon} ${classes.toolIcon}`} onClick={handleClick} />
+        {node.data.onRefreshClick && (
+          <i 
+            className={`${node.data.refreshIcon} ${classes.toolIcon} ${classes.refreshIcon}`} 
+            onClick={handleRefreshClick}
+            title="Refresh queues"
+          />
+        )}
+        {node.data.toolIcon && (
+          <i className={`${node.data.toolIcon} ${classes.toolIcon}`} onClick={handleToolClick} />
+        )}
       </div>
     );
   };

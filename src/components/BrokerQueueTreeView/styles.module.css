@@ -63,6 +63,10 @@ i.toolIcon:hover {
   color: rgba(255, 255, 255, 0.87);
 }
 
+.refreshIcon {
+  margin-right: 0.25rem;
+}
+
 .versionHeader {
   font-size: 1.25rem;
   font-weight: 600;
