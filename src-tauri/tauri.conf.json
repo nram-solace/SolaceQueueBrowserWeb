@@ -25,7 +25,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "SolQBrowser/Web/2.0",
+        "title": "SolQBrowser/Web",
         "url": "desktop",
         "width": 800,
         "height": 600,
