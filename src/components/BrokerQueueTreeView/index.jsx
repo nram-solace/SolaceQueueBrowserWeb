@@ -5,6 +5,7 @@ import { Toast } from 'primereact/toast';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
+import { Dropdown } from 'primereact/dropdown';
 
 import { Tree } from 'primereact/tree';
 
@@ -32,6 +33,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [selectedBroker, setSelectedBroker] = useState(null);
   const [selectedQueueId, setSelectedQueueId] = useState(null);
   const [queueSearchTerm, setQueueSearchTerm] = useState('');
+  const [groupBy, setGroupBy] = useState('environment'); // null, 'environment', or 'type'
 
   const sempApi = useSempApi();
 
@@ -123,18 +125,64 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     }
   };
 
-  // Build broker nodes without nested queues
-  const brokerNodes = brokers.map(config => ({
-    id: config.id,
-    key: config.id,
-    label: config.displayName,
-    data: {
-      type: 'broker',
-      config
-    },
-    icon: getBrokerIcon(config.testResult),
-    leaf: true
-  }));
+  // Build broker nodes with optional grouping
+  const buildBrokerNodes = () => {
+    // Only group if groupBy is explicitly 'environment' or 'type'
+    // Everything else (null, undefined, empty string, etc.) means no grouping
+    if (groupBy !== 'environment' && groupBy !== 'type') {
+      // No grouping: return flat list
+      return brokers.map(config => ({
+        id: config.id,
+        key: config.id,
+        label: config.displayName,
+        data: {
+          type: 'broker',
+          config
+        },
+        icon: getBrokerIcon(config.testResult),
+        leaf: true
+      }));
+    }
+
+    // Group by environment or type
+    const grouped = {};
+    brokers.forEach(config => {
+      const groupKey = config[groupBy] || 'Unknown';
+      if (!grouped[groupKey]) {
+        grouped[groupKey] = [];
+      }
+      grouped[groupKey].push(config);
+    });
+
+    // Build tree structure with group nodes
+    const groupNodes = Object.keys(grouped).sort().map(groupKey => {
+      const groupBrokers = grouped[groupKey];
+      return {
+        id: `group-${groupBy}-${groupKey}`,
+        key: `group-${groupBy}-${groupKey}`,
+        label: `${groupKey} (${groupBrokers.length})`,
+        icon: 'pi pi-folder',
+        data: {
+          type: 'group'
+        },
+        children: groupBrokers.map(config => ({
+          id: config.id,
+          key: config.id,
+          label: config.displayName,
+          data: {
+            type: 'broker',
+            config
+          },
+          icon: getBrokerIcon(config.testResult),
+          leaf: true
+        }))
+      };
+    });
+
+    return groupNodes;
+  };
+
+  const brokerNodes = buildBrokerNodes();
 
   const buildTopicNodeList = (config) => {
     const { replayTopics = [] } = config;
@@ -161,7 +209,12 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
 
   const handleSelect = async (event) => {
     const { node } = event;
-    const { type, config } = node.data;
+    const { type, config } = node.data || {};
+
+    // Ignore group nodes
+    if (type === 'group') {
+      return;
+    }
 
     if (type === 'broker') {
       // Reset selected queue and search term when switching brokers
@@ -396,6 +449,24 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 tooltipOptions={{ position: 'bottom' }}
                 aria-label="Edit Broker"
                 disabled={!selectedBroker}
+              />
+            </div>
+            <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label htmlFor="groupBy" style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Group by:</label>
+              <Dropdown
+                id="groupBy"
+                value={groupBy}
+                onChange={(e) => setGroupBy(e.value)}
+                options={[
+                  { label: 'None', value: null },
+                  { label: 'Environment', value: 'environment' },
+                  { label: 'Type', value: 'type' }
+                ]}
+                optionLabel="label"
+                optionValue="value"
+                placeholder="None"
+                style={{ flex: 1, maxWidth: '200px' }}
+                size="small"
               />
             </div>
             <div className={classes.brokerListContainer}>
