@@ -419,16 +419,42 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
             )}
           </div>
         )}
-        end={() => (
-          <IconField iconPosition="left">
-            <InputIcon className="pi pi-search" />
-            <InputText 
-              value={globalFilterValue} 
-              onChange={onFilterChange} 
-              placeholder="Message Search" 
-            />
-          </IconField>
-        )}
+        end={() => {
+          const hasSearchText = globalFilterValue && String(globalFilterValue).trim().length > 0;
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+              {hasSearchText && (
+                <Button
+                  icon="pi pi-times"
+                  severity="secondary"
+                  rounded
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFilterChange({ target: { value: '' } });
+                  }}
+                  tooltip="Clear search"
+                  tooltipOptions={{ position: 'bottom' }}
+                  style={{ 
+                    minWidth: '2rem',
+                    width: '2rem',
+                    height: '2rem',
+                    padding: 0,
+                    flexShrink: 0
+                  }}
+                />
+              )}
+              <IconField iconPosition="left">
+                <InputIcon className="pi pi-search" />
+                <InputText 
+                  value={globalFilterValue || ''} 
+                  onChange={onFilterChange} 
+                  placeholder="Message Search" 
+                />
+              </IconField>
+            </div>
+          );
+        }}
       />
       
       {/* Row 2: Sort Order | Sort Order Additional Input (left) | N selected | Actions | Refresh (right) */}
