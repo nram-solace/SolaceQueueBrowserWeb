@@ -7,7 +7,7 @@ Version: v2.2.6
 
 ## 📋 Overview
 
-The **Solace Queue Browser** is a web-based utility designed to help developers and operators inspect, analyze, and debug messages stored on Solace PubSub+ message broker queues. Whether you're troubleshooting message flow issues, verifying message content, or analyzing queue behavior, this tool provides an intuitive interface for bidirectional queue browsing with powerful filtering and inspection capabilities.
+The **SolaceQueueBrowserWeb** is a web-based utility designed to help developers and operators inspect, analyze, and debug messages stored on Solace PubSub+ message broker queues. Whether you're troubleshooting message flow issues, verifying message content, or analyzing queue behavior, this tool provides an intuitive interface for bidirectional queue browsing with powerful filtering and inspection capabilities.
 
 The tool supports all Solace broker deployment types including Solace Cloud, Solace Appliances, Software Brokers, and AEM brokers, ensuring you can work with your infrastructure regardless of how it's deployed.
 
