@@ -17,11 +17,29 @@ export default function MessagePayloadView({ message }) {
      }
   }
 
+  if (messageUndefined) {
+    return 'Please select a message.';
+  }
+  
+  if (payloadUndefined) {
+    return '';
+  }
+  
+  if (isBinaryPayloadNotAvailable) {
+    return <div className={classes.binaryPayloadMessage}>Binary payload - not displayed</div>;
+  }
+  
+  if (isJson(message?.payload)) {
+    return (
+      <div className={classes.jsonViewContainer}>
+        <JsonView src={JSON.parse(message?.payload)} theme="atom" dark="false" />
+      </div>
+    );
+  }
+  
   return (
-    messageUndefined ? 'Please select a message.' :
-      payloadUndefined ? '' :
-      isBinaryPayloadNotAvailable ? <div className={classes.binaryPayloadMessage}>Binary payload - not displayed</div> :
-      isJson (message?.payload) ? <JsonView src={JSON.parse(message?.payload)} theme="atom" dark="false" />  :
-    <pre className={classes.wrapText}>{message?.payload || ''}</pre>
-  )
+    <div className={classes.payloadContainer}>
+      <pre className={classes.wrapText}>{message?.payload || ''}</pre>
+    </div>
+  );
 }
