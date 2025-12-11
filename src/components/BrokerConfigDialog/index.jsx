@@ -52,26 +52,30 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
 
   useEffect(() => {
     if (isEditMode) {
-      // Edit mode: use existing single-dialog approach
-    setValues({
-      id: 0,
-      displayName: '',
-      hostName: '',
-      clientPort: '',
-      sempPort: '',
-      useTls: false,
+      // Edit mode: initialize with config values, extract name from displayName
+      const displayNameParts = config?.displayName ? config.displayName.split(':') : [];
+      const brokerName = displayNameParts.length > 1 ? displayNameParts[0] : '';
+      
+      setValues({
+        id: 0,
+        name: brokerName,
+        displayName: '',
+        hostName: '',
+        messagingHost: config?.messagingHost || config?.hostName || '',
+        clientPort: '',
+        sempPort: '',
+        useTls: false,
         sempUseTls: false,
-      vpn: '',
-      clientUsername: '',
-      clientPassword: '',
-      sempUsername: '',
-      sempPassword: '',
+        vpn: '',
+        clientUsername: '',
+        clientPassword: '',
+        sempUsername: '',
+        sempPassword: '',
         environment: 'Other',
         type: 'Generic',
         label: '',
-      ...(config || {})
-    });
-      setCurrentStep(1);
+        ...(config || {})
+      });
     } else {
       // New broker: initialize single page form
       setValues({
@@ -427,7 +431,19 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
   };
 
   const handleSaveEdit = () => {
-    brokerEditor.save(values);
+    // Ensure displayName is properly constructed from name and vpn
+    const updatedValues = { ...values };
+    if (updatedValues.name && updatedValues.vpn) {
+      updatedValues.displayName = `${updatedValues.name}:${updatedValues.vpn}`;
+    } else if (updatedValues.displayName && !updatedValues.name && !updatedValues.vpn) {
+      // If displayName exists but name/vpn don't, try to extract them
+      const parts = updatedValues.displayName.split(':');
+      if (parts.length > 1) {
+        updatedValues.name = parts[0];
+        updatedValues.vpn = parts[1];
+      }
+    }
+    brokerEditor.save(updatedValues);
     onHide?.();
   };
 
@@ -745,53 +761,201 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
   );
 
 
-  // Render edit mode form (existing behavior)
-  const renderEditForm = () => (
+  // Render edit mode form (similar layout to Add broker)
+  const renderEditForm = () => {
+    // Extract name from displayName (format: "name:vpn")
+    const displayNameParts = values.displayName ? values.displayName.split(':') : [];
+    const brokerName = displayNameParts.length > 1 ? displayNameParts[0] : (values.name || '');
+    const vpnName = displayNameParts.length > 1 ? displayNameParts[1] : (values.vpn || '');
+    
+    return (
       <form autoComplete="off">
-        <FloatLabel className={classes.formField}>
-          <InputText id="displayName" className={classes.formInput} value={values.displayName} onChange={handleInputChange} />
-          <label htmlFor="displayName">Display Name</label>
-        </FloatLabel>
-        <FloatLabel className={classes.formField}>
-            <InputText id="hostName" className={classes.formInput} value={values.hostName} onChange={handleInputChange} />
-            <label htmlFor="hostName">Hostname</label>
-        </FloatLabel>
-        <div className={classes.formField} style={{display:'flex', gap: '0.6rem'}}>
-          <FloatLabel style={{flex: 1}}>
-              <InputText id="clientPort" className={classes.formInput} value={values.clientPort} onChange={handleInputChange} />
-              <label htmlFor="clientPort">WS Port</label>
-          </FloatLabel>
-          <FloatLabel style={{flex: 1}}>
-              <InputText id="sempPort" className={classes.formInput} value={values.sempPort} onChange={handleInputChange} />
-              <label htmlFor="sempPort">SEMP Port</label>
-          </FloatLabel>
-          <div style={{flex: 1}}>
-            <Checkbox id="useTls" onChange={handleInputChange} checked={values.useTls} style={{height:'100%', paddingTop:'0.5rem'}}/>
-            <label htmlFor="useTls" className={classes.checkboxLabel}>Use TLS</label>
+        <div style={{display: 'flex', flexDirection: 'column'}}>
+          {/* Form Fields */}
+          <div className={classes.leftColumn}>
+            {/* Name field */}
+            <div style={{marginBottom: '1rem'}}>
+              <label htmlFor="name" className={classes.fieldLabel}>Name</label>
+              <InputText 
+                id="name" 
+                className={classes.formInput} 
+                value={brokerName} 
+                onChange={(e) => {
+                  const newName = e.target.value;
+                  const newDisplayName = vpnName ? `${newName}:${vpnName}` : newName;
+                  setValues({ ...values, name: newName, displayName: newDisplayName });
+                }}
+                style={{maxWidth: '300px'}}
+              />
+            </div>
+
+            {/* Step 1 Section */}
+            <div>
+              {/* Row 1: Management (SEMP) Hostname or IP, Port, TLS */}
+              <div style={{display:'flex', gap: '0.6rem', marginBottom: '1rem'}}>
+                <div style={{flex: 1}}>
+                  <label htmlFor="hostName" className={classes.fieldLabel}>Management (SEMP) Hostname or IP</label>
+                  <InputText 
+                    id="hostName" 
+                    className={classes.formInput} 
+                    value={values.hostName || ''} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div style={{flex: '0 0 120px'}}>
+                  <label htmlFor="sempPort" className={classes.fieldLabel}>Port</label>
+                  <InputText 
+                    id="sempPort" 
+                    className={classes.formInput} 
+                    value={values.sempPort || ''} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div style={{flex: '0 0 80px', display: 'flex', flexDirection: 'column'}}>
+                  <label htmlFor="sempUseTls" className={classes.fieldLabel}>TLS</label>
+                  <div style={{display: 'flex', alignItems: 'center', height: '2.5rem'}}>
+                    <Checkbox 
+                      id="sempUseTls" 
+                      onChange={handleInputChange} 
+                      checked={values.sempUseTls !== false} 
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Management (SEMP) Username, Password */}
+              <div style={{display:'flex', gap: '0.6rem', marginBottom: '1rem'}}>
+                <div style={{flex: '0 0 300px'}}>
+                  <label htmlFor="sempUsername" className={classes.fieldLabel}>Management (SEMP) Username</label>
+                  <InputText 
+                    id="sempUsername" 
+                    className={classes.formInput} 
+                    value={values.sempUsername || ''} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div style={{flex: 1}}>
+                  <label htmlFor="sempPassword" className={classes.fieldLabel}>Password</label>
+                  <Password 
+                    inputId="sempPassword" 
+                    className={classes.passwordInput} 
+                    feedback={false} 
+                    value={values.sempPassword || ''} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              {/* Row 3: ENV | Type */}
+              <div style={{display:'flex', gap: '0.6rem', marginBottom: '1rem'}}>
+                <div style={{flex: '0 0 150px'}}>
+                  <label htmlFor="environment" className={classes.fieldLabel}>ENV</label>
+                  <Dropdown
+                    id="environment"
+                    value={values.environment || 'Other'}
+                    onChange={(e) => handleDropdownChange('environment', e.value)}
+                    options={environmentOptions}
+                    optionLabel="label"
+                    optionValue="value"
+                    className={classes.formInput}
+                  />
+                </div>
+                <div style={{flex: '0 0 150px'}}>
+                  <label htmlFor="type" className={classes.fieldLabel}>Type</label>
+                  <Dropdown
+                    id="type"
+                    value={values.type || 'Generic'}
+                    onChange={(e) => handleDropdownChange('type', e.value)}
+                    options={typeOptions}
+                    optionLabel="label"
+                    optionValue="value"
+                    className={classes.formInput}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className={classes.sectionDivider}></div>
+
+            {/* Step 2 Section */}
+            <div>
+              {/* Row 1: Messaging (SMF) Host or IP, Websocket Port, TLS */}
+              <div style={{display:'flex', gap: '0.6rem', marginBottom: '1rem'}}>
+                <div style={{flex: 1}}>
+                  <label htmlFor="messagingHost" className={classes.fieldLabel}>Messaging (SMF) Host or IP</label>
+                  <InputText 
+                    id="messagingHost" 
+                    className={classes.formInput} 
+                    value={values.messagingHost || values.hostName || ''} 
+                    onChange={handleMessagingHostChange}
+                  />
+                </div>
+                <div style={{flex: '0 0 120px'}}>
+                  <label htmlFor="clientPort" className={classes.fieldLabel}>Websocket Port</label>
+                  <InputText 
+                    id="clientPort" 
+                    className={classes.formInput} 
+                    value={values.clientPort || ''} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div style={{flex: '0 0 80px', display: 'flex', flexDirection: 'column'}}>
+                  <label htmlFor="useTls" className={classes.fieldLabel}>TLS</label>
+                  <div style={{display: 'flex', alignItems: 'center', height: '2.5rem'}}>
+                    <Checkbox 
+                      id="useTls" 
+                      onChange={handleInputChange} 
+                      checked={values.useTls !== false}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 2: Messaging (SMF) Client Username, Password */}
+              <div style={{display:'flex', gap: '0.6rem', marginBottom: '1rem'}}>
+                <div style={{flex: '0 0 300px'}}>
+                  <label htmlFor="clientUsername" className={classes.fieldLabel}>Messaging (SMF) Client Username</label>
+                  <InputText 
+                    id="clientUsername" 
+                    className={classes.formInput} 
+                    value={values.clientUsername || ''} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+                <div style={{flex: 1}}>
+                  <label htmlFor="clientPassword" className={classes.fieldLabel}>Password</label>
+                  <Password 
+                    inputId="clientPassword" 
+                    className={classes.passwordInput} 
+                    feedback={false} 
+                    value={values.clientPassword || ''} 
+                    onChange={handleInputChange}
+                  />
+                </div>
+              </div>
+
+              {/* VPN field */}
+              <div style={{marginBottom: '1rem'}}>
+                <label htmlFor="vpn" className={classes.fieldLabel}>VPN</label>
+                <InputText 
+                  id="vpn" 
+                  className={classes.formInput} 
+                  value={vpnName} 
+                  onChange={(e) => {
+                    const newVpn = e.target.value;
+                    const newDisplayName = brokerName ? `${brokerName}:${newVpn}` : newVpn;
+                    setValues({ ...values, vpn: newVpn, displayName: newDisplayName });
+                  }}
+                  style={{maxWidth: '300px'}}
+                />
+              </div>
+            </div>
           </div>
         </div>
-        <FloatLabel className={classes.formField}>
-            <InputText id="vpn" className={classes.formInput} value={values.vpn} onChange={handleInputChange} />
-            <label htmlFor="vpn">VPN</label>
-        </FloatLabel>
-        <FloatLabel className={classes.formField}>
-            <InputText id="clientUsername" className={classes.formInput} value={values.clientUsername} onChange={handleInputChange} />
-            <label htmlFor="clientUsername">Client Username</label>
-        </FloatLabel>
-        <FloatLabel className={classes.formField}>
-            <Password inputId="clientPassword" className={classes.passwordInput} feedback={false} value={values.clientPassword} onChange={handleInputChange} />
-            <label htmlFor="clientPassword">Client Password</label>
-        </FloatLabel>
-        <FloatLabel className={classes.formField}>
-            <InputText id="sempUsername" className={classes.formInput} value={values.sempUsername} onChange={handleInputChange} />
-            <label htmlFor="sempUsername">SEMP Username</label>
-        </FloatLabel>
-        <FloatLabel className={classes.formField}>
-            <Password inputId="sempPassword" className={classes.passwordInput} feedback={false} value={values.sempPassword} onChange={handleInputChange} />
-            <label htmlFor="sempPassword">SEMP Password</label>
-        </FloatLabel> 
       </form>
-  );
+    );
+  };
 
   return (
     <Dialog 

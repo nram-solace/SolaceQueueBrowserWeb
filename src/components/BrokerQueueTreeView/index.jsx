@@ -130,10 +130,6 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     label: config.displayName,
     data: {
       type: 'broker',
-      toolIcon: 'pi pi-ellipsis-h',
-      onToolClick: () => setBrokerForConfig(config),
-      refreshIcon: 'pi pi-refresh',
-      onRefreshClick: () => handleRefreshBrokerQueues(config),
       config
     },
     icon: getBrokerIcon(config.testResult),
@@ -257,6 +253,30 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     setShowSessionManager(true);
   };
 
+  const handleRefreshClick = async () => {
+    if (!selectedBroker) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Warning',
+        detail: 'Please select a broker to refresh'
+      });
+      return;
+    }
+    await handleRefreshBrokerQueues(selectedBroker);
+  };
+
+  const handleEditClick = () => {
+    if (!selectedBroker) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Warning',
+        detail: 'Please select a broker to edit'
+      });
+      return;
+    }
+    setBrokerForConfig(selectedBroker);
+  };
+
   const handleConfigHide = (data) => {
     setBrokerForConfig(null);
   };
@@ -269,27 +289,9 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   };
 
   const nodeTemplate = (node, options) => {
-    const handleToolClick = (evt) => {
-      evt.stopPropagation();
-      node.data.onToolClick && node.data.onToolClick();
-    };
-    const handleRefreshClick = (evt) => {
-      evt.stopPropagation();
-      node.data.onRefreshClick && node.data.onRefreshClick();
-    };
     return (
       <div className={`${options.className} ${classes.treeNodeLabel}`}>
         <div style={{ flex: '1', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{node.label}</div>
-        {node.data.onRefreshClick && (
-          <i 
-            className={`${node.data.refreshIcon} ${classes.toolIcon} ${classes.refreshIcon}`} 
-            onClick={handleRefreshClick}
-            title="Refresh queues"
-          />
-        )}
-        {node.data.toolIcon && (
-          <i className={`${node.data.toolIcon} ${classes.toolIcon}`} onClick={handleToolClick} />
-        )}
       </div>
     );
   };
@@ -374,6 +376,26 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 tooltip="Restore Session"
                 tooltipOptions={{ position: 'bottom' }}
                 aria-label="Restore Session"
+              />
+              <Button 
+                icon="pi pi-refresh" 
+                text 
+                size="small"
+                onClick={handleRefreshClick} 
+                tooltip="Refresh Queues"
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label="Refresh Queues"
+                disabled={!selectedBroker}
+              />
+              <Button 
+                icon="pi pi-pencil" 
+                text 
+                size="small"
+                onClick={handleEditClick} 
+                tooltip="Edit Broker"
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label="Edit Broker"
+                disabled={!selectedBroker}
               />
             </div>
             <div className={classes.brokerListContainer}>
