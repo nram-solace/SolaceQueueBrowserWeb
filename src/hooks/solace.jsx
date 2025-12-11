@@ -586,7 +586,7 @@ class BasicQueueBrowser extends BaseBrowser {
     this.queueBrowser = this.session.createQueueBrowser({ queueDescriptor });
     await this.queueBrowser.connect();
     this.assertState(BROWSER_STATE.OPENING);
-    this.nextPage = true;
+    this.nextPage = null; // Will be set in getPage() based on actual message count
 
     this.state = BROWSER_STATE.OPEN;
   }
@@ -605,6 +605,7 @@ class BasicQueueBrowser extends BaseBrowser {
     const messages = await this.queueBrowser.readMessages(this.pageSize, 500);
 
     if (messages.length === 0) {
+      this.nextPage = null; // No more messages
       return [];
     }
     const fromMsgId = messages[0].getGuaranteedMessageId()?.low;
@@ -615,6 +616,10 @@ class BasicQueueBrowser extends BaseBrowser {
         direction: MESSAGE_ORDER.OLDEST,
         count: messages.length
       });
+    
+    // If we got fewer messages than the page size, there are no more pages
+    // Otherwise, there might be more (set to true to indicate potential next page)
+    this.nextPage = (messages.length < this.pageSize) ? null : true;
     
     this.didReadMessages = true;
     return this.merge({ messages, msgMetaData });
