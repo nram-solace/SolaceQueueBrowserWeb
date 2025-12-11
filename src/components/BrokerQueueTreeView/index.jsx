@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useSempApi } from '../../providers/SempClientProvider';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
@@ -28,6 +28,8 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
 
   const [queuesListMap, setQueuesListMap] = useState({});
   const [topicsListMap, setTopicsListMap] = useState({});
+  const [selectedBroker, setSelectedBroker] = useState(null);
+  const [selectedQueueId, setSelectedQueueId] = useState(null);
 
   const sempApi = useSempApi();
 
@@ -119,7 +121,8 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     }
   };
 
-  const nodes = [...brokers.map(config => ({
+  // Build broker nodes without nested queues
+  const brokerNodes = brokers.map(config => ({
     id: config.id,
     key: config.id,
     label: config.displayName,
@@ -132,38 +135,8 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       config
     },
     icon: getBrokerIcon(config.testResult),
-    leaf: false,
-    children: [
-      {
-        id: `${config.id}/queues`,
-        key: `${config.id}/queues`,
-        label: 'Queues',
-        icon: <QueueIcon size="16" />,
-        data: {
-          type: 'queues',
-          toolIcon: '',
-          config
-        },
-        leaf: false,
-        children: queuesListMap[config.id] || []
-      },
-      ...(config.testResult?.replay ? [{
-        id: `${config.id}/topics`,
-        key: `${config.id}/topics`,
-        label: 'Replay Log',
-        icon: 'pi pi-backward',
-        data: {
-          type: 'topics',
-          toolIcon: 'pi pi-plus',
-          onToolClick: () => { setBrokerAndReplayTopic({ broker: config, replayTopic: null }) },
-          config
-        },
-        leaf: false,
-        children: topicsListMap[config.id] || []
-      }] : [])
-    ]
-  })),
-  ];
+    leaf: true
+  }));
 
   const buildTopicNodeList = (config) => {
     const { replayTopics = [] } = config;
@@ -185,32 +158,44 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   }
 
   const handleExpand = async (event) => {
+    // No longer needed since brokers are leaf nodes
+  };
+
+  const handleSelect = async (event) => {
     const { node } = event;
     const { type, config } = node.data;
 
     if (type === 'broker') {
+      // Reset selected queue when switching brokers
+      setSelectedQueueId(null);
+      
+      // Test connection and load queues when broker is selected
       setIsLoading(true);
-      const { result } = await brokerEditor.test(config);
-      Object.assign(config, { testResult: result }); //HACK: this updates the during each expansion
-      setIsLoading(false);
+      try {
+        const { result } = await brokerEditor.test(config);
+        Object.assign(config, { testResult: result });
+        
+        if (result.connected) {
+          // Load queues for selected broker
+          const { data: queues } = await sempApi.getClient(config).getMsgVpnQueues(config.vpn, { count: 100 });
+          const queueNodeList = buildQueueNodeList(config, queues);
+          setQueuesListMap(prev => ({ ...prev, [config.id]: queueNodeList }));
+          
+          // Load topics if replay mode
+          if (result.replay) {
+            const topicNodeList = buildTopicNodeList(config);
+            setTopicsListMap(prev => ({ ...prev, [config.id]: topicNodeList }));
+          }
+        }
+        
+        setSelectedBroker(config);
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
-    if (type === 'queues' && config.testResult.connected) {
-      setIsLoading(true);
-      const { data: queues } = await sempApi.getClient(config).getMsgVpnQueues(config.vpn, { count: 100 });
-      const queueNodeList = buildQueueNodeList(config, queues);
-      setQueuesListMap(prev => ({ ...prev, [config.id]: queueNodeList }));
-      setIsLoading(false);
-    }
-
-    if (type === 'topics' && config.testResult.connected) {
-      const topicNodeList = buildTopicNodeList(config);
-      setTopicsListMap(prev => ({ ...prev, [config.id]: topicNodeList }));
-    }
-  };
-
-  const handleSelect = (event) => {
+    // Handle queue/topic selection
     if (event.node.data.type === 'queue' || event.node.data.type === 'topic' || event.node.data.type === 'basic') {
       onSourceSelected?.(event.node.data);
     }
@@ -306,86 +291,162 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     );
   };
 
+  // Get queues and topics for selected broker
+  const selectedBrokerQueues = selectedBroker ? queuesListMap[selectedBroker.id] || [] : [];
+  const selectedBrokerTopics = selectedBroker ? topicsListMap[selectedBroker.id] || [] : [];
+
+  const handleQueueSelect = (queueNode) => {
+    setSelectedQueueId(queueNode.id);
+    onSourceSelected?.(queueNode.data);
+  };
+
+  const handleTopicSelect = (topicNode) => {
+    setSelectedQueueId(topicNode.id);
+    onSourceSelected?.(topicNode.data);
+  };
+
   return (
-    <ContentPanel 
-      title="Event Brokers" 
-      headerPrefix={<div className={classes.versionHeader}>{APP_TITLE}</div>}
-    >
+    <div className={classes.threePanelContainer}>
       <Toast ref={toast} />
-      <div className={classes.buttonRow}>
-        <Button 
-          icon="pi pi-plus" 
-          text 
-          size="small"
-          onClick={handleAddBrokerClick} 
-          tooltip="Add Broker"
-          tooltipOptions={{ position: 'bottom' }}
-          aria-label="Add Broker"
-        />
-        <Button 
-          icon="pi pi-save" 
-          text 
-          size="small"
-          onClick={handleSaveClick} 
-          tooltip="Save Session"
-          tooltipOptions={{ position: 'bottom' }}
-          aria-label="Save Session"
-        />
-        <Button 
-          icon="pi pi-undo" 
-          text 
-          size="small"
-          onClick={handleRestoreClick} 
-          tooltip="Restore Session"
-          tooltipOptions={{ position: 'bottom' }}
-          aria-label="Restore Session"
-        />
+      
+      {/* Top Panel: Logo Text */}
+      <div className={classes.topPanel}>
+        <div className={classes.logoText}>{APP_TITLE}</div>
       </div>
-      <div className={classes.container}>
-        {brokers.length > 0 ? (
-          <Tree value={nodes} className={classes.tree} nodeTemplate={nodeTemplate} selectionMode="single" loading={isLoading}
-            onExpand={handleExpand} onSelect={handleSelect}
-            pt={{ container: { className: classes.treeContainer }, label: { className: classes.treeNodeLabel } }}
+
+      {/* Middle Panel: Buttons + Broker List */}
+      <div className={classes.middlePanel}>
+        <div className={classes.buttonRow}>
+          <Button 
+            icon="pi pi-plus" 
+            text 
+            size="small"
+            onClick={handleAddBrokerClick} 
+            tooltip="Add Broker"
+            tooltipOptions={{ position: 'bottom' }}
+            aria-label="Add Broker"
           />
-        ) : (
-          <div className="p-tree-emptymessage">Use + above to add Solace Event Broker</div>
-        )}
-        <BrokerConfigDialog config={brokerForConfig} brokerEditor={brokerEditor} onHide={handleConfigHide} />
-        <ReplayTopicDialog config={brokerAndReplayTopic} brokerEditor={brokerEditor} onHide={handleTopicDialogHide} />
-        <SessionManagerDialog 
-          sessionManager={sessionManager} 
-          visible={showSessionManager} 
-          onHide={handleSessionManagerHide} 
-        />
-        <Dialog
-          header="Save Session"
-          visible={showSaveDialog}
-          onHide={() => setShowSaveDialog(false)}
-          style={{ width: '400px' }}
-          footer={
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <Button label="Cancel" outlined onClick={() => setShowSaveDialog(false)} />
-              <Button label="Save" onClick={handleSaveSession} loading={isLoading} />
-            </div>
-          }
-        >
-          <div style={{ padding: '1rem 0' }}>
-            <label htmlFor="sessionName" style={{ display: 'block', marginBottom: '0.5rem' }}>Session Name</label>
-            <InputText
-              id="sessionName"
-              value={sessionName}
-              onChange={(e) => setSessionName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSaveSession();
-                }
-              }}
-              style={{ width: '100%' }}
-              autoFocus
+          <Button 
+            icon="pi pi-save" 
+            text 
+            size="small"
+            onClick={handleSaveClick} 
+            tooltip="Save Session"
+            tooltipOptions={{ position: 'bottom' }}
+            aria-label="Save Session"
+          />
+          <Button 
+            icon="pi pi-undo" 
+            text 
+            size="small"
+            onClick={handleRestoreClick} 
+            tooltip="Restore Session"
+            tooltipOptions={{ position: 'bottom' }}
+            aria-label="Restore Session"
+          />
+        </div>
+        <div className={classes.brokerListContainer}>
+          {brokers.length > 0 ? (
+            <Tree 
+              value={brokerNodes} 
+              className={classes.tree} 
+              nodeTemplate={nodeTemplate} 
+              selectionMode="single" 
+              loading={isLoading}
+              onSelect={handleSelect}
+              pt={{ container: { className: classes.treeContainer }, label: { className: classes.treeNodeLabel } }}
             />
-          </div>
-        </Dialog>
+          ) : (
+            <div className="p-tree-emptymessage">Use + above to add Solace Event Broker</div>
+          )}
+        </div>
       </div>
-    </ContentPanel>
+
+      {/* Bottom Panel: Queue List */}
+      <div className={classes.bottomPanel}>
+        <div className={classes.queueListHeader}>
+          <strong>Queues{selectedBroker ? ` - ${selectedBroker.displayName}` : ''}</strong>
+        </div>
+        <div className={classes.queueListContainer}>
+          {selectedBroker ? (
+            selectedBroker.testResult?.connected ? (
+              selectedBrokerQueues.length > 0 || selectedBrokerTopics.length > 0 ? (
+                <>
+                  {selectedBrokerQueues.map((queueNode) => (
+                    <div
+                      key={queueNode.id}
+                      className={`${classes.queueItem} ${selectedQueueId === queueNode.id ? classes.queueItemSelected : ''}`}
+                      onClick={() => handleQueueSelect(queueNode)}
+                    >
+                      <span className={classes.queueIcon}>{queueNode.icon}</span>
+                      <span className={classes.queueLabel}>{queueNode.label}</span>
+                    </div>
+                  ))}
+                  {selectedBroker.testResult?.replay && selectedBrokerTopics.length > 0 && (
+                    <>
+                      <div className={classes.queueListHeader}>
+                        <strong>Replay Log</strong>
+                      </div>
+                      {selectedBrokerTopics.map((topicNode) => (
+                        <div
+                          key={topicNode.id}
+                          className={`${classes.queueItem} ${selectedQueueId === topicNode.id ? classes.queueItemSelected : ''}`}
+                          onClick={() => handleTopicSelect(topicNode)}
+                        >
+                          <span className={classes.queueIcon}>{topicNode.icon}</span>
+                          <span className={classes.queueLabel}>{topicNode.label}</span>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className={classes.emptyMessage}>No queues available</div>
+              )
+            ) : (
+              <div className={classes.emptyMessage}>Broker not connected</div>
+            )
+          ) : (
+            <div className={classes.emptyMessage}>Select a broker to view queues</div>
+          )}
+        </div>
+      </div>
+
+      <BrokerConfigDialog config={brokerForConfig} brokerEditor={brokerEditor} onHide={handleConfigHide} />
+      <ReplayTopicDialog config={brokerAndReplayTopic} brokerEditor={brokerEditor} onHide={handleTopicDialogHide} />
+      <SessionManagerDialog 
+        sessionManager={sessionManager} 
+        visible={showSessionManager} 
+        onHide={handleSessionManagerHide} 
+      />
+      <Dialog
+        header="Save Session"
+        visible={showSaveDialog}
+        onHide={() => setShowSaveDialog(false)}
+        style={{ width: '400px' }}
+        footer={
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <Button label="Cancel" outlined onClick={() => setShowSaveDialog(false)} />
+            <Button label="Save" onClick={handleSaveSession} loading={isLoading} />
+          </div>
+        }
+      >
+        <div style={{ padding: '1rem 0' }}>
+          <label htmlFor="sessionName" style={{ display: 'block', marginBottom: '0.5rem' }}>Session Name</label>
+          <InputText
+            id="sessionName"
+            value={sessionName}
+            onChange={(e) => setSessionName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleSaveSession();
+              }
+            }}
+            style={{ width: '100%' }}
+            autoFocus
+          />
+        </div>
+      </Dialog>
+    </div>
   );
 }
