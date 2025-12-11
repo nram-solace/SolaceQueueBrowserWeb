@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import welcomeMd from '../../../welcome.md?raw';
+import welcomeMd from '../../assets/welcome.md?raw';
 import classes from './styles.module.css';
 
 function MarkdownRenderer({ content }) {
