@@ -4,6 +4,7 @@ import { fs } from '../utils/tauri/api';
 
 import { useSempApi } from "./SempClientProvider";
 import solace from '../utils/solace/solclientasync';
+import { encryptSessionData, decryptSessionData, isEncrypted } from '../utils/encryption';
 
 const BrokerConfigContext = createContext(undefined);
 const baseDir = BaseDirectory.AppConfig;
@@ -75,51 +76,22 @@ export const ConfigSource = {
         return sessionsData ? JSON.parse(sessionsData) : {};
       },
       writeSessions: async (sessions) => {
-        // Try to write to file system if File System Access API is available
-        if ('showSaveFilePicker' in window) {
+        // Always save to localStorage - file saving should be an explicit user action
+        window.localStorage.setItem('sessions', JSON.stringify(sessions));
+        
+        // If we have an existing file handle, silently update it (no prompt)
+        if (fileHandle && 'showSaveFilePicker' in window) {
           try {
-            // If we don't have a file handle, prompt user to choose location
-            if (!fileHandle) {
-              const lastFileName = window.localStorage.getItem('sessionsFileName') || 'sessions.json';
-              
-              fileHandle = await window.showSaveFilePicker({
-                suggestedName: lastFileName,
-                types: [{
-                  description: 'JSON Files',
-                  accept: { 'application/json': ['.json'] }
-                }]
-              });
-              
-              // Remember the file name
-              window.localStorage.setItem('sessionsFileName', fileHandle.name);
-            }
-            
-            // Write to file
             const writable = await fileHandle.createWritable();
             await writable.write(JSON.stringify(sessions, null, 2));
             await writable.close();
-            
-            // Also save to localStorage as backup
-            window.localStorage.setItem('sessions', JSON.stringify(sessions));
-            
-            console.log('Sessions saved to file system:', fileHandle.name);
-            return;
+            console.log('Sessions updated in file system:', fileHandle.name);
           } catch (err) {
-            // User cancelled or error occurred
-            if (err.name === 'AbortError') {
-              // User cancelled - clear handle so they can choose again next time
-              fileHandle = null;
-              throw err; // Re-throw so caller knows user cancelled
-            } else {
-              // Other error - clear handle and fall back to localStorage
-              fileHandle = null;
-              console.warn('Failed to save sessions to file system, using localStorage:', err);
-            }
+            // Handle is invalid, clear it and continue with localStorage only
+            fileHandle = null;
+            console.warn('Failed to update sessions file, using localStorage only:', err);
           }
         }
-        
-        // Fallback to localStorage
-        window.localStorage.setItem('sessions', JSON.stringify(sessions));
       }
     };
   })()
@@ -175,6 +147,48 @@ export function useBrokerConfig() {
     return sessions;
   };
 
+  const saveSessionToFile = async (sessionName, password) => {
+    // Check if File System Access API is available
+    if (!('showSaveFilePicker' in window)) {
+      throw new Error('File System Access API is not supported in this browser. Please use a modern browser like Chrome, Edge, or Opera.');
+    }
+
+    if (!password) {
+      throw new Error('Password is required for encryption');
+    }
+
+    const sessionData = {
+      name: sessionName,
+      brokers: [...brokers],
+      savedAt: new Date().toISOString()
+    };
+
+    // Encrypt the session data
+    const plaintext = JSON.stringify(sessionData, null, 2);
+    const encryptedData = await encryptSessionData(plaintext, password);
+
+    // Prompt user to choose file location
+    const fileHandle = await window.showSaveFilePicker({
+      suggestedName: `${sessionName || 'session'}.json`,
+      types: [{
+        description: 'JSON Files',
+        accept: { 'application/json': ['.json'] }
+      }]
+    });
+
+    // Write encrypted session to file
+    const writable = await fileHandle.createWritable();
+    await writable.write(encryptedData);
+    await writable.close();
+
+    // Also save to sessions collection for consistency (unencrypted for local use)
+    const sessions = await source.readSessions();
+    sessions[sessionName] = sessionData;
+    await source.writeSessions(sessions);
+
+    return { fileName: fileHandle.name, sessionData };
+  };
+
   const restoreSession = async (sessionName) => {
     const sessions = await source.readSessions();
     const session = sessions[sessionName];
@@ -184,6 +198,75 @@ export function useBrokerConfig() {
       return true;
     }
     return false;
+  };
+
+  const restoreSessionFromFile = async (password, fileHandle = null) => {
+    // Check if File System Access API is available
+    if (!('showOpenFilePicker' in window)) {
+      throw new Error('File System Access API is not supported in this browser. Please use a modern browser like Chrome, Edge, or Opera.');
+    }
+
+    let file;
+    
+    // If fileHandle provided, use it; otherwise prompt for file selection
+    if (fileHandle) {
+      file = await fileHandle.getFile();
+    } else {
+      const [selectedFileHandle] = await window.showOpenFilePicker({
+        types: [{
+          description: 'JSON Files',
+          accept: { 'application/json': ['.json'] }
+        }]
+      });
+      file = await selectedFileHandle.getFile();
+      fileHandle = selectedFileHandle; // Store for potential retry
+    }
+
+    // Read the file
+    const contents = await file.text();
+
+    // Try to determine if file is encrypted
+    let sessionData;
+    if (isEncrypted(contents)) {
+      // File is encrypted, need password to decrypt
+      if (!password) {
+        // Throw a specific error that the UI can catch to prompt for password
+        const error = new Error('Password is required to decrypt this file');
+        error.requiresPassword = true;
+        error.fileHandle = fileHandle;
+        throw error;
+      }
+      try {
+        const decryptedData = await decryptSessionData(contents, password);
+        sessionData = JSON.parse(decryptedData);
+      } catch (err) {
+        throw new Error('Failed to decrypt file. Incorrect password or corrupted file.');
+      }
+    } else {
+      // File is not encrypted, parse directly
+      sessionData = JSON.parse(contents);
+    }
+
+    // Validate session data structure
+    if (!sessionData.brokers || !Array.isArray(sessionData.brokers)) {
+      throw new Error('Invalid session file format. The file must contain a brokers array.');
+    }
+
+    // Restore the session
+    setBrokers([...sessionData.brokers]);
+    await source.writeConfig(sessionData.brokers);
+
+    // Optionally add to sessions collection if it has a name
+    if (sessionData.name) {
+      const sessions = await source.readSessions();
+      sessions[sessionData.name] = {
+        ...sessionData,
+        savedAt: sessionData.savedAt || new Date().toISOString()
+      };
+      await source.writeSessions(sessions);
+    }
+
+    return { sessionName: sessionData.name || file.name, brokerCount: sessionData.brokers.length };
   };
 
   const listSessions = async () => {
@@ -335,7 +418,9 @@ export function useBrokerConfig() {
     },
     sessionManager: {
       save: saveSession,
+      saveToFile: saveSessionToFile,
       restore: restoreSession,
+      restoreFromFile: restoreSessionFromFile,
       list: listSessions,
       delete: deleteSession
     }

@@ -1,20 +1,20 @@
 import { Button } from 'primereact/button';
 import { Dialog } from 'primereact/dialog';
 import { Toolbar } from 'primereact/toolbar';
-import { FloatLabel } from 'primereact/floatlabel';
-import { InputText } from 'primereact/inputtext';
 import { Toast } from 'primereact/toast';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import PasswordInputDialog from '../PasswordInputDialog';
 
 import classes from './styles.module.css';
 import { useEffect, useState, useRef } from 'react';
 
 export default function SessionManagerDialog({ sessionManager, onHide, visible }) {
   const [sessions, setSessions] = useState([]);
-  const [sessionName, setSessionName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [passwordDialogConfig, setPasswordDialogConfig] = useState(null);
   const toast = useRef(null);
 
   useEffect(() => {
@@ -34,38 +34,6 @@ export default function SessionManagerDialog({ sessionManager, onHide, visible }
         severity: 'error',
         summary: 'Error',
         detail: 'Failed to load sessions'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSaveSession = async () => {
-    if (!sessionName.trim()) {
-      toast.current?.show({
-        severity: 'warn',
-        summary: 'Validation',
-        detail: 'Please enter a session name'
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await sessionManager.save(sessionName.trim());
-      toast.current?.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: `Session "${sessionName.trim()}" saved successfully`
-      });
-      setSessionName('');
-      await loadSessions();
-    } catch (err) {
-      console.error('Failed to save session:', err);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to save session'
       });
     } finally {
       setLoading(false);
@@ -96,6 +64,78 @@ export default function SessionManagerDialog({ sessionManager, onHide, visible }
         severity: 'error',
         summary: 'Error',
         detail: 'Failed to restore session'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRestoreFromFile = async () => {
+    setLoading(true);
+    try {
+      // Try to restore without password first (in case file is not encrypted)
+      const result = await sessionManager.restoreFromFile(null);
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Success',
+        detail: `Session "${result.sessionName}" restored from file (${result.brokerCount} broker${result.brokerCount !== 1 ? 's' : ''})`
+      });
+      await loadSessions(); // Refresh the list in case the session was added
+      onHide?.();
+    } catch (err) {
+      console.error('Failed to restore session from file:', err);
+      if (err.name === 'AbortError') {
+        // User cancelled file picker - don't show error
+        setLoading(false);
+        return;
+      }
+      
+      // If password is required, show password dialog
+      if (err.requiresPassword || err.message.includes('Password is required') || err.message.includes('decrypt')) {
+        const fileHandle = err.fileHandle || null;
+        setPasswordDialogConfig({
+          title: 'Enter Password',
+          message: 'Please enter password to decrypt the session file',
+          requireConfirm: false,
+          onConfirm: (password) => handleRestoreFromFileWithPassword(password, fileHandle)
+        });
+        setShowPasswordDialog(true);
+        setLoading(false);
+        return;
+      }
+      
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.message || 'Failed to restore session from file'
+      });
+      setLoading(false);
+    }
+  };
+
+  const handleRestoreFromFileWithPassword = async (password, fileHandle) => {
+    setShowPasswordDialog(false);
+    setLoading(true);
+    try {
+      // Call restore again with password and file handle (if available)
+      const result = await sessionManager.restoreFromFile(password, fileHandle);
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Success',
+        detail: `Session "${result.sessionName}" restored from file (${result.brokerCount} broker${result.brokerCount !== 1 ? 's' : ''})`
+      });
+      await loadSessions(); // Refresh the list in case the session was added
+      onHide?.();
+    } catch (err) {
+      console.error('Failed to restore session from file:', err);
+      if (err.name === 'AbortError') {
+        // User cancelled file picker - don't show error
+        return;
+      }
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.message || 'Failed to restore session from file'
       });
     } finally {
       setLoading(false);
@@ -165,7 +205,18 @@ export default function SessionManagerDialog({ sessionManager, onHide, visible }
   const Footer = () => (
     <Toolbar
       end={
-        <Button onClick={onHide}>Close</Button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <Button
+            label="Restore from File"
+            icon="pi pi-file-import"
+            onClick={handleRestoreFromFile}
+            loading={loading}
+            outlined
+            tooltip="Restore a session from a local JSON file"
+            tooltipOptions={{ position: 'top' }}
+          />
+          <Button onClick={onHide}>Close</Button>
+        </div>
       }
     />
   );
@@ -183,31 +234,6 @@ export default function SessionManagerDialog({ sessionManager, onHide, visible }
         <Toast ref={toast} />
         <ConfirmDialog />
         
-        <div className={classes.saveSection}>
-          <h3 style={{ marginTop: 0 }}>Save Current Session</h3>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end' }}>
-            <FloatLabel style={{ flex: 1 }}>
-              <InputText
-                id="sessionName"
-                value={sessionName}
-                onChange={(e) => setSessionName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSaveSession();
-                  }
-                }}
-              />
-              <label htmlFor="sessionName">Session Name</label>
-            </FloatLabel>
-            <Button
-              label="Save"
-              icon="pi pi-save"
-              onClick={handleSaveSession}
-              loading={loading}
-            />
-          </div>
-        </div>
-
         <div className={classes.sessionsSection}>
           <h3>Saved Sessions</h3>
           <DataTable
@@ -236,6 +262,20 @@ export default function SessionManagerDialog({ sessionManager, onHide, visible }
           </DataTable>
         </div>
       </Dialog>
+      
+      {passwordDialogConfig && (
+        <PasswordInputDialog
+          visible={showPasswordDialog}
+          onHide={() => {
+            setShowPasswordDialog(false);
+            setPasswordDialogConfig(null);
+          }}
+          onConfirm={passwordDialogConfig.onConfirm}
+          title={passwordDialogConfig.title}
+          message={passwordDialogConfig.message}
+          requireConfirm={passwordDialogConfig.requireConfirm}
+        />
+      )}
     </>
   );
 }

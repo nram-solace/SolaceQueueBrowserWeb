@@ -13,6 +13,7 @@ import ContentPanel from '../ContentPanel';
 import BrokerConfigDialog from '../BrokerConfigDialog';
 import ReplayTopicDialog from '../ReplayTopicDialog';
 import SessionManagerDialog from '../SessionManagerDialog';
+import PasswordInputDialog from '../PasswordInputDialog';
 
 import { TopicIcon, LvqIcon, QueueIcon } from '../../icons';
 import { APP_TITLE } from '../../config/version';
@@ -24,6 +25,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [brokerAndReplayTopic, setBrokerAndReplayTopic] = useState(null);
   const [showSessionManager, setShowSessionManager] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
   const [sessionName, setSessionName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const toast = useRef(null);
@@ -319,6 +321,48 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     }
   };
 
+  const handleSaveSessionToFile = async () => {
+    if (!sessionName.trim()) {
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Validation',
+        detail: 'Please enter a session name'
+      });
+      return;
+    }
+
+    // Show password dialog for encryption
+    setShowPasswordDialog(true);
+  };
+
+  const handleSaveSessionToFileWithPassword = async (password) => {
+    setShowPasswordDialog(false);
+    setIsLoading(true);
+    try {
+      const result = await sessionManager.saveToFile(sessionName.trim(), password);
+      toast.current?.show({
+        severity: 'success',
+        summary: 'Success',
+        detail: `Session "${sessionName.trim()}" saved to encrypted file: ${result.fileName}`
+      });
+      setShowSaveDialog(false);
+      setSessionName('');
+    } catch (err) {
+      console.error('Failed to save session to file:', err);
+      if (err.name === 'AbortError') {
+        // User cancelled file picker - don't show error
+        return;
+      }
+      toast.current?.show({
+        severity: 'error',
+        summary: 'Error',
+        detail: err.message || 'Failed to save session to file'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleRestoreClick = () => {
     setShowSessionManager(true);
   };
@@ -468,27 +512,29 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 disabled={!selectedBroker}
               />
             </div>
-            <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <label htmlFor="groupBy" style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Group by:</label>
-              <Dropdown
-                id="groupBy"
-                value={groupBy}
-                onChange={(e) => setGroupBy(e.value)}
-                options={[
-                  { label: 'None', value: null },
-                  { label: 'Environment', value: 'environment' },
-                  { label: 'Region/DC', value: 'region' },
-                  { label: 'Type', value: 'type' }
-                ]}
-                optionLabel="label"
-                optionValue="value"
-                placeholder="None"
-                style={{ flex: 1, maxWidth: '200px' }}
-                size="small"
-              />
-            </div>
+            {brokers.length > 0 && (
+              <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <label htmlFor="groupBy" style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Group by:</label>
+                <Dropdown
+                  id="groupBy"
+                  value={groupBy}
+                  onChange={(e) => setGroupBy(e.value)}
+                  options={[
+                    { label: 'None', value: null },
+                    { label: 'Environment', value: 'environment' },
+                    { label: 'Region/DC', value: 'region' },
+                    { label: 'Type', value: 'type' }
+                  ]}
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="None"
+                  style={{ flex: 1, maxWidth: '200px' }}
+                  size="small"
+                />
+              </div>
+            )}
             <div className={classes.brokerListContainer}>
-              {brokers.length > 0 ? (
+              {brokers.length > 0 && (
                 <Tree 
                   value={brokerNodes} 
                   className={classes.tree} 
@@ -498,8 +544,6 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                   onSelect={handleSelect}
                   pt={{ container: { className: classes.treeContainer }, label: { className: classes.treeNodeLabel } }}
                 />
-              ) : (
-                <div className="p-tree-emptymessage">Use + button above to add Solace Event Broker</div>
               )}
             </div>
           </div>
@@ -591,15 +635,40 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         visible={showSessionManager} 
         onHide={handleSessionManagerHide} 
       />
+      <PasswordInputDialog
+        visible={showPasswordDialog}
+        onHide={() => setShowPasswordDialog(false)}
+        onConfirm={handleSaveSessionToFileWithPassword}
+        title="Set Encryption Password"
+        message="You will need this password to restore the session."
+        requireConfirm={true}
+        confirmLabel="Save"
+      />
       <Dialog
         header="Save Session"
         visible={showSaveDialog}
         onHide={() => setShowSaveDialog(false)}
-        style={{ width: '400px' }}
+        style={{ width: '450px' }}
         footer={
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
             <Button label="Cancel" outlined onClick={() => setShowSaveDialog(false)} />
-            <Button label="Save" onClick={handleSaveSession} loading={isLoading} />
+            <Button 
+              label="Save to File" 
+              icon="pi pi-file"
+              outlined
+              onClick={handleSaveSessionToFile} 
+              loading={isLoading}
+              tooltip="Save to local file system"
+              tooltipOptions={{ position: 'top' }}
+            />
+            <Button 
+              label="Save" 
+              icon="pi pi-save"
+              onClick={handleSaveSession} 
+              loading={isLoading}
+              tooltip="Save to browser storage"
+              tooltipOptions={{ position: 'top' }}
+            />
           </div>
         }
       >
@@ -617,6 +686,9 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
             style={{ width: '100%' }}
             autoFocus
           />
+          <small style={{ display: 'block', marginTop: '0.5rem', color: 'var(--text-color-secondary)' }}>
+            Choose "Save" to store in browser or "Save to File" to save to your local file system
+          </small>
         </div>
       </Dialog>
     </div>
