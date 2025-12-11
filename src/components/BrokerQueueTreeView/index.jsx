@@ -342,10 +342,14 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         />
       </div>
       <div className={classes.container}>
-        <Tree value={nodes} className={classes.tree} nodeTemplate={nodeTemplate} selectionMode="single" loading={isLoading}
-          onExpand={handleExpand} onSelect={handleSelect}
-          pt={{ container: { className: classes.treeContainer }, label: { className: classes.treeNodeLabel } }}
-        />
+        {brokers.length > 0 ? (
+          <Tree value={nodes} className={classes.tree} nodeTemplate={nodeTemplate} selectionMode="single" loading={isLoading}
+            onExpand={handleExpand} onSelect={handleSelect}
+            pt={{ container: { className: classes.treeContainer }, label: { className: classes.treeNodeLabel } }}
+          />
+        ) : (
+          <div className="p-tree-emptymessage">Use + above to add Solace Event Broker</div>
+        )}
         <BrokerConfigDialog config={brokerForConfig} brokerEditor={brokerEditor} onHide={handleConfigHide} />
         <ReplayTopicDialog config={brokerAndReplayTopic} brokerEditor={brokerEditor} onHide={handleTopicDialogHide} />
         <SessionManagerDialog 
