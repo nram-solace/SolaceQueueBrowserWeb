@@ -63,9 +63,44 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       // Clear selection when messages are reloaded (messages may have changed)
       setSelectedMessages([]);
     } catch (err) {
-      console.error('Error loding messages', err);
-      setMessages([]); // TODO: also show error toast notification?
+      setMessages([]);
       setSelectedMessages([]);
+      
+      const errorMessage = err.message || 'Unknown error occurred while loading messages.';
+      const isPermissionError = 
+        errorMessage.includes('does not have permissions') ||
+        errorMessage.includes('Permission Not Allowed') ||
+        errorMessage.includes('Access denied') ||
+        errorMessage.includes('Permission');
+      
+      // Show dialog for permission errors, toast for other errors
+      if (isPermissionError) {
+        // Permission errors are expected and user is notified via popup, so log at debug level
+        console.debug('Permission error (user notified via popup):', errorMessage);
+        // Use setTimeout to ensure the dialog is shown after the current render cycle
+        setTimeout(() => {
+          confirmDialog({
+            message: errorMessage,
+            header: 'Permission Denied',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'OK',
+            rejectClassName: 'hidden-reject',
+            accept: () => {
+              // Dialog closed, no action needed
+            }
+          });
+        }, 0);
+      } else {
+        // Log unexpected errors at error level
+        console.error('Error loading messages', err);
+        // Show error toast notification for other errors
+        toast.current?.show({
+          severity: 'error',
+          summary: 'Error Loading Messages',
+          detail: errorMessage,
+          life: 7000
+        });
+      }
     }
     setIsLoading(false);
   };
@@ -88,7 +123,10 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   };
 
   useEffect(() => {
-    browser.getReplayTimeRange().then(range => setReplayLogTimeRange(range));
+    browser.getReplayTimeRange().then(range => setReplayLogTimeRange(range)).catch(err => {
+      console.warn('Error getting replay time range:', err);
+      setReplayLogTimeRange({ min: null, max: null });
+    });
     setMessages([]);
     setSelectedMessages([]); // Clear selection when browser changes
     // Initialize page size from browser
@@ -878,7 +916,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
             header={ListHeader}
             footer={ListFooter}
             loading={isLoading}
-            emptyMessage="No messages to browse or Browsing not supported."
+            emptyMessage="No messages to browse, Browsing not supported or allowed."
           >
             <Column selectionMode="multiple" headerStyle={{ width: '3rem' }} />
             <Column body={messageStatus} />

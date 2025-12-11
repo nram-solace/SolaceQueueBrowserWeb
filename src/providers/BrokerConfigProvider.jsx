@@ -5,7 +5,7 @@ import { fs } from '../utils/tauri/api';
 import { useSempApi } from "./SempClientProvider";
 import solace from '../utils/solace/solclientasync';
 
-const BrokerConfigContext = createContext();
+const BrokerConfigContext = createContext(undefined);
 const baseDir = BaseDirectory.AppConfig;
 
 export const ConfigSource = {
@@ -135,7 +135,11 @@ export function BrokerConfigProvider({ source, children }) {
 }
 
 export function useBrokerConfig() {
-  const { source, brokers, setBrokers } = useContext(BrokerConfigContext);
+  const context = useContext(BrokerConfigContext);
+  if (context === undefined) {
+    throw new Error('useBrokerConfig must be used within a BrokerConfigProvider');
+  }
+  const { source, brokers, setBrokers } = context;
   const sempApi = useSempApi();
 
   useEffect(() => {

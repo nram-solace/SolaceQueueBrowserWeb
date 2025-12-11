@@ -99,8 +99,68 @@ function createAsyncSession(sessionProperties) {
     const { connect } = queueBrowser;
 
     function connectAsync() {
-      return new Promise(onBrowserUp => {
-        queueBrowser.once(solace.QueueBrowserEventName.UP, onBrowserUp);
+      return new Promise((onBrowserUp, onBrowserError) => {
+        let resolved = false;
+        
+        const cleanup = () => {
+          queueBrowser.removeListener(solace.QueueBrowserEventName.UP, handleUp);
+          queueBrowser.removeListener(solace.QueueBrowserEventName.CONNECT_FAILED_ERROR, handleConnectError);
+          queueBrowser.removeListener(solace.QueueBrowserEventName.DOWN_ERROR, handleDownError);
+        };
+        
+        const handleUp = () => {
+          if (!resolved) {
+            resolved = true;
+            cleanup();
+            onBrowserUp();
+          }
+        };
+        
+        const handleConnectError = (errorEvent) => {
+          if (!resolved) {
+            resolved = true;
+            cleanup();
+            handleError(errorEvent, 'Connection failed');
+          }
+        };
+        
+        const handleDownError = (errorEvent) => {
+          if (!resolved) {
+            resolved = true;
+            cleanup();
+            handleError(errorEvent, 'Disconnected due to error');
+          }
+        };
+        
+        const handleError = (errorEvent, errorType) => {
+          // Extract error information
+          const errorInfo = errorEvent.info || {};
+          const errorStr = errorEvent.str || errorEvent.message || errorEvent.toString() || '';
+          const responseCode = errorEvent.responseCode;
+          
+          // Check for permission errors
+          const isPermissionError = 
+            errorStr.includes('Permission Not Allowed') ||
+            (errorStr.includes('Permission') && errorStr.includes('Not Allowed')) ||
+            responseCode === solace.SolclientErrorSubcode.INVALID_OPERATION ||
+            (errorInfo && errorInfo.reason && errorInfo.reason.includes('Permission'));
+          
+          if (isPermissionError) {
+            const error = new Error(`Permission Not Allowed: The messaging user does not have permissions to browse this Queue.`);
+            error.isPermissionError = true;
+            error.originalError = errorEvent;
+            onBrowserError(error);
+          } else {
+            // For other errors, create a generic error
+            const error = new Error(errorStr || `${errorType}: ${responseCode || 'Unknown error'}`);
+            error.originalError = errorEvent;
+            onBrowserError(error);
+          }
+        };
+        
+        queueBrowser.once(solace.QueueBrowserEventName.UP, handleUp);
+        queueBrowser.once(solace.QueueBrowserEventName.CONNECT_FAILED_ERROR, handleConnectError);
+        queueBrowser.once(solace.QueueBrowserEventName.DOWN_ERROR, handleDownError);
         connect.call(queueBrowser);
       });
     }

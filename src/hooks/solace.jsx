@@ -79,6 +79,53 @@ class BaseBrowser {
     this.state = BROWSER_STATE.CLOSED;
   }
 
+  async checkBrowsePermissions() {
+    const { sourceName, config, type } = this.sourceDefinition || {};
+    const { clientUsername } = config || {};
+    
+    // Only check permissions for QUEUE type (not topics or basic sources)
+    // BASIC type might be a queue but we'll let the actual browse operation handle permissions
+    if (type !== SOURCE_TYPE.QUEUE || !sourceName || !this.sempClient) {
+      return; // Skip check for non-queue sources or if no queue name/SEMP client
+    }
+
+    try {
+      // Get queue details including owner and permission
+      const { data: queue } = await this.sempClient.getMsgVpnQueue(
+        this.vpn, 
+        sourceName, 
+        { select: ['owner', 'permission'] }
+      );
+
+      if (!queue) {
+        return; // Skip check if queue details not available
+      }
+
+      const { owner, permission } = queue;
+      const isOwner = (owner === clientUsername);
+
+      // If user is not the owner and permission is "no-access", deny browsing
+      if (!isOwner && permission === 'no-access') {
+        throw new Error(
+          `Access denied: You do not have browse permissions on queue "${sourceName}". ` +
+          `Queue owner: ${owner || 'unknown'}, Permission: ${permission}. ` +
+          `Message listing via SEMP may work, but browsing message contents requires browse permissions.`
+        );
+      }
+
+      // Note: "read-only" permission allows browsing but not consuming
+      // "consume", "modify-topic", and "delete" also allow browsing
+    } catch (err) {
+      // If it's our permission error, re-throw it
+      if (err.message && err.message.includes('Access denied')) {
+        throw err;
+      }
+      // For other errors (e.g., queue not found), log but don't block
+      // The actual browse operation will fail with a more specific error
+      console.warn('Could not verify queue permissions:', err);
+    }
+  }
+
   async open() {
     this.assertState(BROWSER_STATE.CLOSED);
     this.state = BROWSER_STATE.OPENING;
@@ -94,6 +141,10 @@ class BaseBrowser {
     if (this.sempApi) {
       this.sempClient = this.sempApi?.getClient(config);
     }
+
+    // Check browse permissions before proceeding
+    // This validates that the messaging user has permission to browse the queue
+    await this.checkBrowsePermissions();
 
     if (this.solclientFactory) {
       this.session = this.solclientFactory.createAsyncSession({
@@ -574,7 +625,8 @@ class BasicQueueBrowser extends BaseBrowser {
   }
 
   async open() {
-    const { sourceName: queueName } = this.sourceDefinition;
+    const { sourceName: queueName, config } = this.sourceDefinition;
+    const { clientUsername } = config || {};
 
     await super.open();
     this.state = BROWSER_STATE.OPENING; // reset OPEN state to continue async operations
@@ -584,7 +636,22 @@ class BasicQueueBrowser extends BaseBrowser {
 
     const queueDescriptor = { name: queueName, type: solace.QueueType.QUEUE };
     this.queueBrowser = this.session.createQueueBrowser({ queueDescriptor });
-    await this.queueBrowser.connect();
+    
+    try {
+      await this.queueBrowser.connect();
+    } catch (err) {
+      // Check if this is a permission error from the broker
+      if (err.isPermissionError || 
+          (err.message && err.message.includes('Permission Not Allowed')) ||
+          (err.message && err.message.includes('Permission'))) {
+        // Format error with messaging username (matching user's requested format)
+        const username = clientUsername || 'unknown';
+        throw new Error(`The messaging user "${username}" does not have permissions to browse this Queue.`);
+      }
+      // Re-throw other errors as-is
+      throw err;
+    }
+    
     this.assertState(BROWSER_STATE.OPENING);
     this.nextPage = null; // Will be set in getPage() based on actual message count
 
@@ -639,6 +706,27 @@ class NullBrowser extends BaseBrowser{
   async open() {}
   async close() {}
   async getPage() {return []};
+  async getFirstPage() {return []};
+  async getReplayTimeRange() {return { min: null, max: null }; }
+}
+
+class ErrorBrowser extends BaseBrowser {
+  constructor(error) {
+    super();
+    this.error = error;
+  }
+  
+  async open() {}
+  async close() {}
+  async getPage() {
+    throw this.error;
+  }
+  async getFirstPage() {
+    throw this.error;
+  }
+  async getReplayTimeRange() {
+    return { min: null, max: null };
+  }
 }
 
 const NULL_BROWSER = new NullBrowser();
@@ -670,8 +758,26 @@ export function useQueueBrowsing() {
       await newBrowser?.open();
       setBrowser(newBrowser);
     } catch (err) {
-      console.error('Error opening browser', err);
-      setBrowser(NULL_BROWSER);
+      // Check if this is a permission error (expected behavior, user will be notified via popup)
+      const errorMessage = err.message || String(err);
+      const isPermissionError = 
+        errorMessage.includes('does not have permissions') ||
+        errorMessage.includes('Permission Not Allowed') ||
+        errorMessage.includes('Access denied') ||
+        errorMessage.includes('Permission');
+      
+      if (isPermissionError) {
+        // Permission errors are expected and user is notified via popup, so log at debug level
+        console.debug('Permission error (user will be notified via popup):', errorMessage);
+      } else {
+        // Log unexpected errors at error level
+        console.error('Error opening browser', err);
+      }
+      
+      // Store the error in an ErrorBrowser so it can be thrown when getFirstPage() is called
+      // Ensure the error message is preserved
+      const errorToStore = err instanceof Error ? err : new Error(errorMessage);
+      setBrowser(new ErrorBrowser(errorToStore));
     }
   }
 
