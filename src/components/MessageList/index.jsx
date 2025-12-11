@@ -95,6 +95,12 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     }
   }, [browser, suppressAutoLoad]);
 
+  // Clear search string when queue is selected
+  useEffect(() => {
+    setGlobalFilterValue('');
+    setFilters({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
+  }, [sourceName, type, config?.id]);
+
   const handleBulkSelection = (e) => {
     // Handle multi-select for bulk operations
     // Only allow selection via checkbox, not row clicks
