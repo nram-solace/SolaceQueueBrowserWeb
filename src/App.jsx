@@ -8,6 +8,7 @@ import DesktopContainer from './components/DesktopContainer';
 import RootLayout from './components/RootLayout';
 import TreeView from './components/BrokerQueueTreeView';
 import MessageList from './components/MessageList';
+import WelcomeScreen from './components/WelcomeScreen';
 import MessagePayloadView from './components/MessagePayloadView';
 import MessageHeadersView from './components/MessageHeadersView';
 import MessageUserPropertiesView from './components/MessageUserPropertiesView';
@@ -51,13 +52,17 @@ export default function App() {
             <TreeView brokers={brokers} brokerEditor={brokerEditor} sessionManager={sessionManager} onSourceSelected={handleSourceSelected} />
           </RootLayout.LeftPanel>
           <RootLayout.CenterPanel>
-            <MessageList 
-              sourceDefinition={selectedSource}
-              browser={browser}
-              selectedMessage={selectedMessage}
-              onBrowseFromChange={handleBrowseFromChange}
-              onMessageSelect={handleMessageSelect} 
-            />
+            {selectedSource.sourceName ? (
+              <MessageList 
+                sourceDefinition={selectedSource}
+                browser={browser}
+                selectedMessage={selectedMessage}
+                onBrowseFromChange={handleBrowseFromChange}
+                onMessageSelect={handleMessageSelect} 
+              />
+            ) : (
+              <WelcomeScreen />
+            )}
           </RootLayout.CenterPanel>
           <RootLayout.RightPanel1 header="Payload">
             <MessagePayloadView message={selectedMessage} />
