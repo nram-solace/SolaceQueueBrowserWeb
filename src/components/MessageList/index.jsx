@@ -10,6 +10,7 @@ import { FilterMatchMode } from 'primereact/api';
 import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { Toast } from 'primereact/toast';
 import { Checkbox } from 'primereact/checkbox';
+import { Dropdown } from 'primereact/dropdown';
 
 import MessageListToolbar from './MessageListToolbar';
 import { ActionApiClient } from '../../utils/solace/semp/actionApi';
@@ -52,6 +53,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   const [currentBulkOperationType, setCurrentBulkOperationType] = useState(null); // Stores operation type for result dialog
   const [abortOnError, setAbortOnError] = useState(false);
   const [suppressAutoLoad, setSuppressAutoLoad] = useState(false); // Flag to suppress automatic message loading
+  const [pageSize, setPageSize] = useState(100);
 
   const loadMessages = async (loader) => {
     setIsLoading(true);
@@ -89,6 +91,10 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     browser.getReplayTimeRange().then(range => setReplayLogTimeRange(range));
     setMessages([]);
     setSelectedMessages([]); // Clear selection when browser changes
+    // Initialize page size from browser
+    if (browser.pageSize) {
+      setPageSize(browser.pageSize);
+    }
     // Only load messages if not suppressed (for partitioned queues)
     if (!suppressAutoLoad) {
       loadMessages(() => browser.getFirstPage());
@@ -164,6 +170,22 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const handlePrevClick = () => {
     loadMessages(() => browser.getPrevPage());
+  };
+
+  const pageSizeOptions = [
+    { label: '25', value: 25 },
+    { label: '50', value: 50 },
+    { label: '100', value: 100 },
+    { label: '200', value: 200 },
+    { label: '500', value: 500 }
+  ];
+
+  const handlePageSizeChange = (e) => {
+    const newPageSize = e.value;
+    setPageSize(newPageSize);
+    browser.pageSize = newPageSize;
+    // Reload current page with new page size
+    loadMessages(() => browser.getFirstPage());
   };
 
   const handleDeleteMessage = (message) => {
@@ -498,9 +520,17 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const ListFooter = () => {
     return (
-      <div>
-        <Button text onClick={handleFirstClick}>First</Button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <Button text onClick={handleFirstClick}>&lt;&lt; First</Button>
         <Button text onClick={handlePrevClick} disabled={!browser.hasPrevPage()}>&lt; Prev</Button>
+        <Dropdown
+          value={pageSize}
+          onChange={handlePageSizeChange}
+          options={pageSizeOptions}
+          optionLabel="label"
+          optionValue="value"
+          style={{ minWidth: '5rem' }}
+        />
         <Button text onClick={handleNextClick} disabled={!browser.hasNextPage()}>Next &gt;</Button>
       </div>
     );
