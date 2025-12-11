@@ -11,10 +11,6 @@ export default function MessageHeadersView({ message }) {
   const { headers } = message;
   const tableData = transformToTableData(headers);
 
-  if (tableData.length === 0) {
-    return <div className={classes.emptyMessage}>No headers available.</div>;
-  }
-
   return (
     <DataTable 
       value={tableData} 
@@ -23,6 +19,7 @@ export default function MessageHeadersView({ message }) {
       scrollHeight="flex"
       stripedRows
       className={classes.messageTable}
+      emptyMessage=""
     >
       <Column field="name" header="Header Property" style={{ width: '40%' }} />
       <Column field="value" header="Value" body={(rowData) => (

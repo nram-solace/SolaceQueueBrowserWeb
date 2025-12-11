@@ -11,10 +11,6 @@ export default function MessageMetaView({ message }) {
   const { meta } = message;
   const tableData = transformToTableData(meta);
 
-  if (tableData.length === 0) {
-    return <div className={classes.emptyMessage}>No meta data available.</div>;
-  }
-
   return (
     <DataTable 
       value={tableData} 
@@ -23,6 +19,7 @@ export default function MessageMetaView({ message }) {
       scrollHeight="flex"
       stripedRows
       className={classes.messageTable}
+      emptyMessage=""
     >
       <Column field="name" header="Meta Property" style={{ width: '40%' }} />
       <Column field="value" header="Value" body={(rowData) => (

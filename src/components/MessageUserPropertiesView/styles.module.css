@@ -2,6 +2,23 @@
   font-size: small;
 }
 
+.messageTable :global(.p-datatable-emptymessage) {
+  display: none !important;
+}
+
+.messageTable :global(td.p-datatable-emptymessage) {
+  display: none !important;
+}
+
+/* Hide the entire row containing empty message */
+.messageTable :global(.p-datatable-tbody > tr > td[colspan]) {
+  display: none !important;
+}
+
+.messageTable :global(.p-datatable-tbody > tr:only-child > td[colspan]) {
+  display: none !important;
+}
+
 .valueCell {
   word-break: break-word;
   white-space: normal;

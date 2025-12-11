@@ -11,10 +11,6 @@ export default function MessageUserPropertiesView({ message }) {
   const { userProperties } = message;
   const tableData = transformToTableData(userProperties);
 
-  if (tableData.length === 0) {
-    return <div className={classes.emptyMessage}>No user properties available.</div>;
-  }
-
   return (
     <DataTable 
       value={tableData} 
@@ -23,6 +19,7 @@ export default function MessageUserPropertiesView({ message }) {
       scrollHeight="flex"
       stripedRows
       className={classes.messageTable}
+      emptyMessage=""
     >
       <Column field="name" header="User Property" style={{ width: '40%' }} />
       <Column field="value" header="Value" body={(rowData) => (
