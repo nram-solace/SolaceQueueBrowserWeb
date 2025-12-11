@@ -4,6 +4,7 @@ import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
+import { Splitter, SplitterPanel } from 'primereact/splitter';
 
 import { Tree } from 'primereact/tree';
 
@@ -30,6 +31,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [topicsListMap, setTopicsListMap] = useState({});
   const [selectedBroker, setSelectedBroker] = useState(null);
   const [selectedQueueId, setSelectedQueueId] = useState(null);
+  const [queueSearchTerm, setQueueSearchTerm] = useState('');
 
   const sempApi = useSempApi();
 
@@ -166,8 +168,9 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     const { type, config } = node.data;
 
     if (type === 'broker') {
-      // Reset selected queue when switching brokers
+      // Reset selected queue and search term when switching brokers
       setSelectedQueueId(null);
+      setQueueSearchTerm('');
       
       // Test connection and load queues when broker is selected
       setIsLoading(true);
@@ -295,6 +298,28 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const selectedBrokerQueues = selectedBroker ? queuesListMap[selectedBroker.id] || [] : [];
   const selectedBrokerTopics = selectedBroker ? topicsListMap[selectedBroker.id] || [] : [];
 
+  // Filter queues and topics based on search term (case-insensitive)
+  const filteredQueues = queueSearchTerm
+    ? selectedBrokerQueues.filter(queue => 
+        queue.label.toLowerCase().includes(queueSearchTerm.toLowerCase())
+      )
+    : selectedBrokerQueues;
+
+  const filteredTopics = queueSearchTerm
+    ? selectedBrokerTopics.filter(topic => 
+        topic.label.toLowerCase().includes(queueSearchTerm.toLowerCase())
+      )
+    : selectedBrokerTopics;
+
+  const handleQueueSearch = () => {
+    // Search is performed in real-time via filteredQueues/filteredTopics
+    // This handler can be used for additional search logic if needed
+  };
+
+  const handleClearSearch = () => {
+    setQueueSearchTerm('');
+  };
+
   const handleQueueSelect = (queueNode) => {
     setSelectedQueueId(queueNode.id);
     onSourceSelected?.(queueNode.data);
@@ -314,103 +339,139 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         <div className={classes.logoText}>{APP_TITLE}</div>
       </div>
 
-      {/* Middle Panel: Buttons + Broker List */}
-      <div className={classes.middlePanel}>
-        <div className={classes.buttonRow}>
-          <Button 
-            icon="pi pi-plus" 
-            text 
-            size="small"
-            onClick={handleAddBrokerClick} 
-            tooltip="Add Broker"
-            tooltipOptions={{ position: 'bottom' }}
-            aria-label="Add Broker"
-          />
-          <Button 
-            icon="pi pi-save" 
-            text 
-            size="small"
-            onClick={handleSaveClick} 
-            tooltip="Save Session"
-            tooltipOptions={{ position: 'bottom' }}
-            aria-label="Save Session"
-          />
-          <Button 
-            icon="pi pi-undo" 
-            text 
-            size="small"
-            onClick={handleRestoreClick} 
-            tooltip="Restore Session"
-            tooltipOptions={{ position: 'bottom' }}
-            aria-label="Restore Session"
-          />
-        </div>
-        <div className={classes.brokerListContainer}>
-          {brokers.length > 0 ? (
-            <Tree 
-              value={brokerNodes} 
-              className={classes.tree} 
-              nodeTemplate={nodeTemplate} 
-              selectionMode="single" 
-              loading={isLoading}
-              onSelect={handleSelect}
-              pt={{ container: { className: classes.treeContainer }, label: { className: classes.treeNodeLabel } }}
-            />
-          ) : (
-            <div className="p-tree-emptymessage">Use + above to add Solace Event Broker</div>
-          )}
-        </div>
-      </div>
+      {/* Resizable Splitter for Broker List and Queue List */}
+      <Splitter layout="vertical" className={classes.resizableSplitter}>
+        {/* Middle Panel: Buttons + Broker List */}
+        <SplitterPanel size={30} minSize={15} className={classes.splitterPanel}>
+          <div className={classes.middlePanel}>
+            <div className={classes.brokerListHeader}>
+              <strong>Event Brokers</strong>
+            </div>
+            <div className={classes.buttonRow}>
+              <Button 
+                icon="pi pi-plus" 
+                text 
+                size="small"
+                onClick={handleAddBrokerClick} 
+                tooltip="Add Broker"
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label="Add Broker"
+              />
+              <Button 
+                icon="pi pi-save" 
+                text 
+                size="small"
+                onClick={handleSaveClick} 
+                tooltip="Save Session"
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label="Save Session"
+              />
+              <Button 
+                icon="pi pi-undo" 
+                text 
+                size="small"
+                onClick={handleRestoreClick} 
+                tooltip="Restore Session"
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label="Restore Session"
+              />
+            </div>
+            <div className={classes.brokerListContainer}>
+              {brokers.length > 0 ? (
+                <Tree 
+                  value={brokerNodes} 
+                  className={classes.tree} 
+                  nodeTemplate={nodeTemplate} 
+                  selectionMode="single" 
+                  loading={isLoading}
+                  onSelect={handleSelect}
+                  pt={{ container: { className: classes.treeContainer }, label: { className: classes.treeNodeLabel } }}
+                />
+              ) : (
+                <div className="p-tree-emptymessage">Use + button above to add Solace Event Broker</div>
+              )}
+            </div>
+          </div>
+        </SplitterPanel>
 
-      {/* Bottom Panel: Queue List */}
-      <div className={classes.bottomPanel}>
-        <div className={classes.queueListHeader}>
-          <strong>Queues{selectedBroker ? ` - ${selectedBroker.displayName}` : ''}</strong>
-        </div>
-        <div className={classes.queueListContainer}>
-          {selectedBroker ? (
-            selectedBroker.testResult?.connected ? (
-              selectedBrokerQueues.length > 0 || selectedBrokerTopics.length > 0 ? (
-                <>
-                  {selectedBrokerQueues.map((queueNode) => (
-                    <div
-                      key={queueNode.id}
-                      className={`${classes.queueItem} ${selectedQueueId === queueNode.id ? classes.queueItemSelected : ''}`}
-                      onClick={() => handleQueueSelect(queueNode)}
-                    >
-                      <span className={classes.queueIcon}>{queueNode.icon}</span>
-                      <span className={classes.queueLabel}>{queueNode.label}</span>
-                    </div>
-                  ))}
-                  {selectedBroker.testResult?.replay && selectedBrokerTopics.length > 0 && (
+        {/* Bottom Panel: Queue List */}
+        <SplitterPanel size={70} minSize={30} className={classes.splitterPanel}>
+          <div className={classes.bottomPanel}>
+            <div className={classes.queueListHeader}>
+              <strong>Queues{selectedBroker ? ` - ${selectedBroker.displayName}` : ''}</strong>
+            </div>
+            <div className={classes.queueSearchContainer}>
+              <InputText
+                value={queueSearchTerm}
+                onChange={(e) => setQueueSearchTerm(e.target.value)}
+                placeholder="Search queues..."
+                className={classes.queueSearchInput}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    handleClearSearch();
+                  }
+                }}
+              />
+              <Button
+                icon={queueSearchTerm ? "pi pi-times" : "pi pi-search"}
+                text
+                size="small"
+                onClick={queueSearchTerm ? handleClearSearch : handleQueueSearch}
+                tooltip={queueSearchTerm ? "Clear search" : "Search"}
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label={queueSearchTerm ? "Clear search" : "Search"}
+                className={classes.queueSearchButton}
+              />
+            </div>
+            <div className={classes.queueListContainer}>
+              {selectedBroker ? (
+                selectedBroker.testResult?.connected ? (
+                  filteredQueues.length > 0 || filteredTopics.length > 0 ? (
                     <>
-                      <div className={classes.queueListHeader}>
-                        <strong>Replay Log</strong>
-                      </div>
-                      {selectedBrokerTopics.map((topicNode) => (
+                      {filteredQueues.map((queueNode) => (
                         <div
-                          key={topicNode.id}
-                          className={`${classes.queueItem} ${selectedQueueId === topicNode.id ? classes.queueItemSelected : ''}`}
-                          onClick={() => handleTopicSelect(topicNode)}
+                          key={queueNode.id}
+                          className={`${classes.queueItem} ${selectedQueueId === queueNode.id ? classes.queueItemSelected : ''}`}
+                          onClick={() => handleQueueSelect(queueNode)}
                         >
-                          <span className={classes.queueIcon}>{topicNode.icon}</span>
-                          <span className={classes.queueLabel}>{topicNode.label}</span>
+                          <span className={classes.queueIcon}>{queueNode.icon}</span>
+                          <span className={classes.queueLabel}>{queueNode.label}</span>
                         </div>
                       ))}
+                      {selectedBroker.testResult?.replay && filteredTopics.length > 0 && (
+                        <>
+                          <div className={classes.queueListHeader}>
+                            <strong>Replay Log</strong>
+                          </div>
+                          {filteredTopics.map((topicNode) => (
+                            <div
+                              key={topicNode.id}
+                              className={`${classes.queueItem} ${selectedQueueId === topicNode.id ? classes.queueItemSelected : ''}`}
+                              onClick={() => handleTopicSelect(topicNode)}
+                            >
+                              <span className={classes.queueIcon}>{topicNode.icon}</span>
+                              <span className={classes.queueLabel}>{topicNode.label}</span>
+                            </div>
+                          ))}
+                        </>
+                      )}
+                      {queueSearchTerm && filteredQueues.length === 0 && filteredTopics.length === 0 && (
+                        <div className={classes.emptyMessage}>No queues match "{queueSearchTerm}"</div>
+                      )}
                     </>
-                  )}
-                </>
+                  ) : (
+                    <div className={classes.emptyMessage}>No queues available</div>
+                  )
+                ) : (
+                  <div className={classes.emptyMessage}>Broker not connected</div>
+                )
               ) : (
-                <div className={classes.emptyMessage}>No queues available</div>
-              )
-            ) : (
-              <div className={classes.emptyMessage}>Broker not connected</div>
-            )
-          ) : (
-            <div className={classes.emptyMessage}>Select a broker to view queues</div>
-          )}
-        </div>
-      </div>
+                <div className={classes.emptyMessage}>Select a broker to view queues</div>
+              )}
+            </div>
+          </div>
+        </SplitterPanel>
+      </Splitter>
 
       <BrokerConfigDialog config={brokerForConfig} brokerEditor={brokerEditor} onHide={handleConfigHide} />
       <ReplayTopicDialog config={brokerAndReplayTopic} brokerEditor={brokerEditor} onHide={handleTopicDialogHide} />
