@@ -1,6 +1,7 @@
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+import { transformToTableData } from '../../utils/messageTableData';
 import classes from './styles.module.css';
-import JsonView from 'react18-json-view';
-import 'react18-json-view/src/style.css';
 
 export default function MessageMetaView({ message }) {
   if (!message || message === null || message === undefined) {
@@ -8,7 +9,24 @@ export default function MessageMetaView({ message }) {
   }
   
   const { meta } = message;
+  const tableData = transformToTableData(meta);
+
+  if (tableData.length === 0) {
+    return <div className={classes.emptyMessage}>No meta data available.</div>;
+  }
+
   return (
-    <JsonView src={meta || {}} theme="atom" dark="false" />
-  )
+    <DataTable 
+      value={tableData} 
+      size="small"
+      scrollable
+      scrollHeight="flex"
+      className={classes.messageTable}
+    >
+      <Column field="name" header="Property" style={{ width: '40%' }} />
+      <Column field="value" header="Value" body={(rowData) => (
+        <span className={classes.valueCell}>{rowData.value}</span>
+      )} />
+    </DataTable>
+  );
 }

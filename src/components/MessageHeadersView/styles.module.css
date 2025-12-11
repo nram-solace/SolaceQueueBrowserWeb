@@ -1,5 +1,15 @@
-.wrapText {
-  white-space: pre-wrap;
-  word-break: break-all;
+.messageTable {
+  font-size: small;
+}
+
+.valueCell {
+  word-break: break-word;
+  white-space: normal;
+}
+
+.emptyMessage {
+  padding: 1rem;
+  text-align: center;
+  color: var(--text-color-secondary);
   font-size: small;
 }
