@@ -19,7 +19,7 @@ Connect to any Solace PubSub+ broker deployment type:
 - **☁️ Solace Cloud** - Managed cloud instances
 - **🔧 AEM Brokers** - SAP Advanced Event Mesh deployments
 - **💻 Software Brokers** - Self-hosted broker instances
-- **🏢 Solace Appliances** - Hardware appliance deployments  
+- **🏢 Solace Appliances** - Hardware appliance deployments
 
 ### 📊 Advanced Queue Browsing
 
@@ -64,7 +64,30 @@ Manage messages across queues with powerful batch operations:
 - **📝 Multi-field Search** - Search across all message components simultaneously
 - **❌ Clear Search** - Quick reset button to clear search filters
 
-### ⚙️ Settings & Customization
+### 🗂️ Broker Organization
+
+- **📁 Group by Environment** - Organize brokers by environment (LAB, DEV, PROD, etc.)
+- **📁 Group by Type** - Group by broker type (Cloud, Software, Appliance, etc.)
+- **📁 Group by Region** - Organize by geographic region
+- **🔍 Flexible Views** - Switch between grouped and flat list views
+
+### 🔐 Session Management
+
+- **💾 Save & Restore** - Save broker connections and restore across sessions
+- **🔒 Encrypted Export** - Export sessions to password-protected encrypted files
+- **📥 Import Sessions** - Import encrypted session files with automatic decryption
+- **🔄 Persistent Storage** - Sessions stored locally in browser or as encrypted files
+
+
+### 🌐 Proxy Support
+
+- **✅ Automatic CORS Handling** - Built-in proxy eliminates broker CORS configuration requirements
+- **🐳 Docker Proxy** - Container deployment includes proxy server
+- **☁️ Vercel Deployment** - Serverless proxy for production web deployments
+- **🔧 Development Proxy** - Automatic proxy in dev mode
+- **🎯 Zero Configuration** - Works with any broker without CORS setup  
+
+### ⚙️ Customization
 
 - **🎛️ Optional Features** - Enable/disable advanced replay features via Settings dialog
 - **💾 Persistent Preferences** - Settings saved to browser storage across sessions
@@ -104,7 +127,7 @@ Manage messages across queues with powerful batch operations:
 ### Browser Mode Configuration
 
 When running in browser mode:
-- **🌐 CORS Configuration** - Broker SEMP service must allow cross-origin requests. The public endpoint and Docker version bypass this requirement by running a proxy server.
+- **✅ Automatic CORS Handling** - Proxy support eliminates the need for broker CORS configuration
 - **🔒 TLS Matching** - Browser and broker TLS must match (HTTP ↔ HTTP, HTTPS ↔ HTTPS)
 
 ### 🐳 Docker Mode Benefits
@@ -142,7 +165,7 @@ Access at `http://localhost:3000`
 
 **Custom Port:**
 ```bash
-docker run -p 8080:8080 -e PORT=8080 solace-queue-browser
+docker run -p 3030:3030 -e PORT=3030 solace-queue-browser
 ```
 
 **Pre-built Docker Image Distribution:**
@@ -177,11 +200,11 @@ npm run tauri dev
 
 1. **➕ Add Broker** - Click to configure broker connection
 2. **🔐 Enter Credentials**:
-   - Broker URL
-   - VPN Name
+   - Broker URL (management host and port)
    - SEMP API credentials
    - Messaging API credentials
-3. **✅ Connect** - Select a queue from the tree view and start browsing
+3. **🔍 Discover VPNs** - Click "Get VPNs" to automatically discover available message VPNs
+4. **✅ Connect** - Select VPN(s), test connection, and save. Select a queue from the tree view to start browsing
 
 ---
 

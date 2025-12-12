@@ -17,7 +17,25 @@ Connect to any Solace PubSub+ broker deployment type:
 - **☁️ Solace Cloud** - Managed cloud instances
 - **🔧 AEM Brokers** - SAP Advanced Event Mesh deployments
 - **💻 Software Brokers** - Self-hosted broker instances
-- **🏢 Solace Appliances** - Hardware appliance deployments  
+- **🏢 Solace Appliances** - Hardware appliance deployments
+
+### 🔐 Session Management
+
+- **💾 Save & Restore** - Save broker connections and restore across sessions
+- **🔒 Encrypted Export** - Export sessions to password-protected encrypted files
+- **📥 Import Sessions** - Import encrypted session files with automatic decryption
+
+### 🗂️ Broker Organization
+
+- **📁 Group by Environment** - Organize brokers by environment (LAB, DEV, PROD, etc.)
+- **📁 Group by Type** - Group by broker type (Cloud, Software, Appliance, etc.)
+- **📁 Group by Region** - Organize by geographic region
+- **🔍 Flexible Views** - Switch between grouped and flat list views
+
+### 🌐 Proxy Support & CORS
+
+- **✅ Automatic CORS Handling** - Built-in proxy eliminates broker CORS configuration requirements
+- **🎯 Zero Configuration** - Works with any broker without CORS setup
 
 ### 📊 Advanced Queue Browsing
 
@@ -68,6 +86,12 @@ Manage messages across queues with powerful batch operations:
 - **💾 Persistent Preferences** - Settings saved to browser storage across sessions
 - **🎨 Theme Support** - Light and dark theme options
 
+### 🌐 Deployment Options
+
+- **🐳 Docker** - Containerized deployment with built-in proxy server
+- **☁️ Web Browser** - Runs entirely in browser with automatic proxy support
+- **🖥️ Desktop App** - Native desktop application (Windows, Mac, Linux)
+
 ---
 
 ## 🎯 Use Cases
@@ -103,11 +127,11 @@ Manage messages across queues with powerful batch operations:
 
 1. **➕ Add Broker** - Click to configure broker connection
 2. **🔐 Enter Credentials**:
-   - Broker URL
-   - VPN Name
+   - Broker URL (management host and port)
    - SEMP API credentials
    - Messaging API credentials
-3. **✅ Connect** - Select a queue from the tree view and start browsing
+3. **🔍 Discover VPNs** - Click "Get VPNs" to automatically discover available message VPNs
+4. **✅ Connect** - Select VPN(s), test connection, and save. Select a queue from the tree view to start browsing
 
 ---
 `;
