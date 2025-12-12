@@ -1,5 +1,4 @@
 # 🚀 Solace Queue Browser Web
-Version: v2.2.6
 
 **A web tool for browsing, inspecting and managing messages on Solace PubSub+ Event Brokers.**
 

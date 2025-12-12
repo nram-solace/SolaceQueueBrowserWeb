@@ -144,7 +144,8 @@ export class ApiClient {
        window.location.hostname.includes('vercel.com') ||
        import.meta.env.VITE_USE_PROXY === 'true'); // Allow manual override via env var
     
-    // In browser mode, route through proxy to bypass CORS (dev or Vercel)
+    // In browser mode, always route through proxy to bypass CORS
+    // The proxy is available in: Docker (proxy-server.js), Vercel (serverless function), or dev (Vite proxy)
     let requestUrl = fullUrl;
     let requestHeaders = {
       'Authorization': `Basic ${btoa(`${username}:${password}`)}`,
@@ -152,7 +153,8 @@ export class ApiClient {
       'Accept': 'application/json'
     };
     
-    if (isBrowserMode && (isDevelopment || hasServerlessProxy)) {
+    if (isBrowserMode) {
+      // Always use proxy in browser mode (not Tauri) to bypass CORS
       // Extract path from full URL for proxy
       try {
         const urlObj = new URL(fullUrl);
@@ -160,14 +162,10 @@ export class ApiClient {
         requestUrl = `/api/semp-proxy${proxyPath}`;
         // Pass original target URL in header for proxy to use
         requestHeaders['X-Semp-Target'] = `${urlObj.protocol}//${urlObj.host}`;
+        console.log('🌐 Using proxy for SEMP request:', requestUrl);
       } catch (e) {
         console.warn('⚠️ Failed to parse URL for proxy, using direct request:', e);
       }
-    } else if (isBrowserMode && !isDevelopment && !hasServerlessProxy) {
-      // Production mode without proxy: make direct requests (broker must have CORS configured)
-      console.log('🌐 Production mode: making direct request to broker');
-      console.log(`   URL: ${fullUrl}`);
-      console.log(`   Note: Broker must allow CORS from this origin, or deploy to Vercel to use proxy`);
     }
     
     let resp;
