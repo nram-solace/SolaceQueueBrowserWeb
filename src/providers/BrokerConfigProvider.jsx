@@ -305,19 +305,19 @@ export function useBrokerConfig() {
 
       if(err.responseCode) switch(err.responseCode) {
         case 401:
-          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Unauthorized', detail: 'Incorrect client username or password.' }};
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Unauthorized', detail: 'Incorrect client username or password.', life: 30000 }};
       }
       
       const errMsg = err.message;
 
       if (errMsg.includes('invalid URL')) {
-        return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Failure', detail: 'Invalid broker URL.'}};
+        return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Failure', detail: 'Invalid broker URL.', life: 30000 }};
       }
       if (errMsg.includes('Connection error')) {
-        return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Failure', detail: 'General connection error.'}};
+        return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Failure', detail: 'General connection error.', life: 30000 }};
       }
 
-      return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Connection Error', detail: 'Unknown error!' }};    
+      return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Connection Error', detail: 'Unknown error!', life: 30000 }};    
     }
 
     const sempClient = sempApi.getClient(config);
@@ -344,20 +344,20 @@ export function useBrokerConfig() {
       switch (status) {
         case 200:
           if (body?.data && Array.isArray(body.data) && body.data.length > 0) {
-            return { result: { connected: true, replay: true}, message: { severity:'info', summary: 'Success', detail: 'Broker connection succeeded.' }};
+            return { result: { connected: true, replay: true}, message: { severity:'success', summary: 'Broker connection successful', detail: 'Broker connection successful.', life: 30000 }};
           } else {
-            return { result: { connected: true, replay: false}, message: { severity:'warn', summary: 'Warning', detail: 'Replay Log not enabled on broker.' }};
+            return { result: { connected: true, replay: false}, message: { severity:'success', summary: 'Broker connection successful', detail: 'Broker connection successful. Note: Replay not enabled. Bi-directional browsing not supported.', life: 30000 }};
           }
         case 400:
-          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Bad Request', detail: errorDetail }};
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Bad Request', detail: errorDetail, life: 30000 }};
         case 401:
-          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Unauthorized', detail: errorDetail }};
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Unauthorized', detail: errorDetail, life: 30000 }};
         case 403:
-          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Forbidden', detail: errorDetail }};
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Forbidden', detail: errorDetail, life: 30000 }};
         case 500:
         default:
           // Handle proxy errors and other server errors
-          return { result: { connected: false, replay: false}, message: { severity:'error', summary: `SEMP: ${status === 500 ? 'Server Error' : 'Error'}`, detail: errorDetail }};
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: `SEMP: ${status === 500 ? 'Server Error' : 'Error'}`, detail: errorDetail, life: 30000 }};
       }
     };
 
@@ -386,7 +386,8 @@ export function useBrokerConfig() {
               summary: 'SEMP: CORS Error', 
               detail: isProduction 
                 ? `Browser blocked the request due to CORS policy. The Solace broker must be configured to allow CORS from: ${origin}. Configure the broker's CORS settings to include this origin in the allowed origins list.`
-                : 'Browser blocked the request due to CORS policy. If running in web mode, ensure the Vite dev server proxy is working. Otherwise, run the app through Tauri (npm run tauri dev) to bypass CORS restrictions.'
+                : 'Browser blocked the request due to CORS policy. If running in web mode, ensure the Vite dev server proxy is working. Otherwise, run the app through Tauri (npm run tauri dev) to bypass CORS restrictions.',
+              life: 30000
             }
           };
         }
@@ -395,17 +396,17 @@ export function useBrokerConfig() {
           errMsg.includes('Invalid URL') ||
           errMsg.includes('expected empty host')
         ) {
-          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Failure', detail: 'Invalid broker URL.' }};
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Failure', detail: 'Invalid broker URL.', life: 30000 }};
         }
         
         if (
           errMsg.includes('Network Error') ||
           errMsg.includes('Request has been terminated')
         ) {
-          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Failure', detail: 'Broker service unreachable.' }}
+          return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Failure', detail: 'Broker service unreachable.', life: 30000 }}
         }
       }
-      return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Failure', detail: 'Unknown error!' }};
+      return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SEMP: Failure', detail: 'Unknown error!', life: 30000 }};
     }
   };
 

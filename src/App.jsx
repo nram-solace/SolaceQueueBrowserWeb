@@ -23,6 +23,7 @@ export default function App() {
   
   const [selectedSource, setSelectedSource] = useState({});
   const [selectedMessage, setSelectedMessage] = useState({});
+  const [hasEverSelectedSource, setHasEverSelectedSource] = useState(false);
 
   const [browser, updateBrowser] = useQueueBrowsing();
 
@@ -33,6 +34,11 @@ export default function App() {
   const handleSourceSelected = (source) => {
     setSelectedMessage({});
     setSelectedSource(source);
+    // Track if we've ever had a queue/topic selected (has sourceName)
+    // Once set to true, it stays true even when source is cleared (broker switch)
+    if (source && source.sourceName) {
+      setHasEverSelectedSource(true);
+    }
   };
 
   const handleBrowseFromChange = (browseFrom) => {
@@ -60,6 +66,10 @@ export default function App() {
                 onBrowseFromChange={handleBrowseFromChange}
                 onMessageSelect={handleMessageSelect} 
               />
+            ) : hasEverSelectedSource ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.1rem', color: 'var(--text-color-secondary)' }}>
+                Select a connected broker and a Queue to view messages
+              </div>
             ) : (
               <WelcomeScreen />
             )}

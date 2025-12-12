@@ -72,7 +72,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         sempUsername: '',
         sempPassword: '',
         environment: 'Other',
-        region: 'Unspecified',
+        region: null,
         type: 'Generic',
         label: '',
         ...(config || {})
@@ -84,14 +84,14 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         name: '',
         hostName: '',
         messagingHost: '',
-        sempPort: '',
+        sempPort: '943',
         sempUseTls: true,
         sempUsername: '',
         sempPassword: '',
         environment: 'Other',
-        region: 'Unspecified',
+        region: null,
         type: 'Generic',
-        clientPort: '',
+        clientPort: '443',
         useTls: true,
         clientUsername: '',
         clientPassword: ''
@@ -324,7 +324,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         // All connections succeeded
         toast.current?.show({
           severity: 'success',
-          summary: `${protocol} Connection Test Passed`,
+          summary: 'Broker connection successful',
           detail: `All ${selectedVpns.length} VPN connection${selectedVpns.length === 1 ? '' : 's'} tested successfully:\n${selectedVpns.join(', ')}`,
           life: 5000
         });
@@ -415,7 +415,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         sempUsername: values.sempUsername,
         sempPassword: values.sempPassword,
         environment: values.environment,
-        region: values.region || 'Unspecified',
+        region: values.region || null,
         type: values.type
       };
       brokerEditor.save(brokerConfig);
@@ -635,13 +635,9 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
             <InputText 
               id="region" 
               className={classes.formInput} 
-              value={values.region || 'Unspecified'} 
+              value={values.region || ''} 
               onChange={handleInputChange}
-              onClick={(e) => {
-                if ((values.region || 'Unspecified') === 'Unspecified') {
-                  setValues({ ...values, region: '' });
-                }
-              }}
+              placeholder="Unspecified"
               disabled={isLoadingVpns || isTestingConnection}
             />
           </div>
@@ -883,13 +879,9 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
                   <InputText 
                     id="region" 
                     className={classes.formInput} 
-                    value={values.region || 'Unspecified'} 
+                    value={values.region || ''} 
                     onChange={handleInputChange}
-                    onClick={(e) => {
-                      if ((values.region || 'Unspecified') === 'Unspecified') {
-                        setValues({ ...values, region: '' });
-                      }
-                    }}
+                    placeholder="Unspecified"
                   />
                 </div>
                 <div style={{flex: '0 0 150px'}}>

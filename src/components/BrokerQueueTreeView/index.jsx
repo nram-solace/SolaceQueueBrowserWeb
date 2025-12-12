@@ -240,6 +240,9 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       setSelectedQueueId(null);
       setQueueSearchTerm('');
       
+      // Clear the selected source to reset the message list when switching brokers
+      onSourceSelected?.({});
+      
       // Test connection and load queues when broker is selected
       setIsLoading(true);
       try {
