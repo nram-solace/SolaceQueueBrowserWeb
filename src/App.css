@@ -124,3 +124,25 @@ svg {
 .hidden-reject {
   display: none !important;
 }
+
+/* Prevent layout shift from react18-json-view hover buttons */
+/* Override the default display:none to always reserve space */
+.json-view :is(.json-view--copy, .json-view--edit),
+.json-view .json-view--link svg {
+  display: inline-block !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  pointer-events: none;
+  width: 1em !important;
+  height: 1em !important;
+  margin-left: 0.25em !important;
+  vertical-align: -10% !important;
+}
+
+:is(.json-view:hover, .json-view--pair:hover) > :is(.json-view--copy, .json-view--edit),
+:is(.json-view:hover, .json-view--pair:hover) > .json-view--link svg {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto;
+}
