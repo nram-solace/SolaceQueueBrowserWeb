@@ -1,0 +1,15 @@
+node_modules
+dist
+docs
+.git
+.gitignore
+.vscode
+.claude
+*.log
+.DS_Store
+src-tauri/target
+src-tauri/Cargo.lock
+*.md
+!README.md
+.env
+.env.local
