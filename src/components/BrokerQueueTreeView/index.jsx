@@ -15,6 +15,7 @@ import BrokerConfigDialog from '../BrokerConfigDialog';
 import ReplayTopicDialog from '../ReplayTopicDialog';
 import SessionManagerDialog from '../SessionManagerDialog';
 import PasswordInputDialog from '../PasswordInputDialog';
+import SettingsDialog from '../SettingsDialog';
 
 import { TopicIcon, LvqIcon, QueueIcon } from '../../icons';
 import { APP_TITLE } from '../../config/version';
@@ -28,6 +29,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [showSessionManager, setShowSessionManager] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [sessionName, setSessionName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const toast = useRef(null);
@@ -551,6 +553,15 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 tooltipOptions={{ position: 'bottom' }}
                 aria-label="Toggle Theme"
               />
+              <Button 
+                icon="pi pi-cog" 
+                text 
+                size="small"
+                onClick={() => setShowSettingsDialog(true)} 
+                tooltip="Settings"
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label="Settings"
+              />
             </div>
             {brokers.length > 0 && (
               <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -683,6 +694,10 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         message="You will need this password to restore the session."
         requireConfirm={true}
         confirmLabel="Save"
+      />
+      <SettingsDialog
+        visible={showSettingsDialog}
+        onHide={() => setShowSettingsDialog(false)}
       />
       <Dialog
         header="Save Session"

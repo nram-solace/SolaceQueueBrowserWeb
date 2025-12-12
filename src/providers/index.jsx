@@ -2,6 +2,7 @@ import { PrimeReactProvider } from 'primereact/api';
 
 import { BrokerConfigProvider, ConfigSource } from './BrokerConfigProvider';
 import { SempClientProvider } from './SempClientProvider';
+import { SettingsProvider } from './SettingsProvider';
 
 import { TauriClient, FetchClient } from '../utils/solace/semp';
 
@@ -15,11 +16,13 @@ export default function Providers({ children }) {
 
   return (
     <PrimeReactProvider value={primeConfig}>
-      <SempClientProvider value={TAURI_APP ? TauriClient : FetchClient}>
-        <BrokerConfigProvider source={TAURI_APP ? ConfigSource.FS : ConfigSource.LOCAL_STORAGE}>
-          {children}
-        </BrokerConfigProvider>
-      </SempClientProvider>
+      <SettingsProvider>
+        <SempClientProvider value={TAURI_APP ? TauriClient : FetchClient}>
+          <BrokerConfigProvider source={TAURI_APP ? ConfigSource.FS : ConfigSource.LOCAL_STORAGE}>
+            {children}
+          </BrokerConfigProvider>
+        </SempClientProvider>
+      </SettingsProvider>
     </PrimeReactProvider>
   );
 }

@@ -12,6 +12,7 @@ import { confirmDialog } from 'primereact/confirmdialog';
 
 import { SOURCE_TYPE, BROWSE_MODE, SUPPORTED_BROWSE_MODES, MESSAGE_ORDER } from '../../hooks/solace';
 import { useSempApi } from '../../providers/SempClientProvider';
+import { useSettings } from '../../providers/SettingsProvider';
 import { debounce } from '../../utils/debounce';
 import PropTypes from 'prop-types';
 
@@ -35,6 +36,7 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
   const { id: brokerId } = config || {};
 
   const sempApi = useSempApi();
+  const { settings } = useSettings();
   const [messageCount, setMessageCount] = useState(null);
   const [queueDetails, setQueueDetails] = useState(null);
   const partitionedToastShownFor = useRef(null); // Track which queue we've shown the toast for
@@ -95,28 +97,42 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
     messageCount: messageCount
   }));
 
-  const [sourceLabel, browseModes] =
-    (sourceType === SOURCE_TYPE.BASIC) ? [
-      'Queue', [
-        { value: BROWSE_MODE.BASIC, name: 'Default' }
-      ]
-    ] : (sourceType === SOURCE_TYPE.QUEUE) ? [
-      'Queue', [
-        { value: BROWSE_MODE.BASIC, name: 'Default' },
-        { value: BROWSE_MODE.HEAD, name: 'Oldest First' },
-        { value: BROWSE_MODE.TAIL, name: 'Newest First' },
-        { value: BROWSE_MODE.TIME, name: 'Date / Time' },
-        { value: BROWSE_MODE.MSGID, name: 'Message ID' }
-      ]] : (sourceType === SOURCE_TYPE.TOPIC) ? [
-        'Topic', [
+  // Filter out replay-based modes if replay features are disabled
+  const getBrowseModes = () => {
+    const replayEnabled = settings.replayFeaturesEnabled;
+    
+    if (sourceType === SOURCE_TYPE.BASIC) {
+      return ['Queue', [{ value: BROWSE_MODE.BASIC, name: 'Default' }]];
+    } else if (sourceType === SOURCE_TYPE.QUEUE) {
+      const modes = [{ value: BROWSE_MODE.BASIC, name: 'Default' }];
+      if (replayEnabled) {
+        modes.push(
+          { value: BROWSE_MODE.HEAD, name: 'Oldest First' },
+          { value: BROWSE_MODE.TAIL, name: 'Newest First' },
           { value: BROWSE_MODE.TIME, name: 'Date / Time' },
           { value: BROWSE_MODE.MSGID, name: 'Message ID' }
-        ]
-      ] : [
-      '', [
-        { value: null }
-      ]
-    ];
+        );
+      }
+      return ['Queue', modes];
+    } else if (sourceType === SOURCE_TYPE.TOPIC) {
+      const modes = [];
+      if (replayEnabled) {
+        modes.push(
+          { value: BROWSE_MODE.TIME, name: 'Date / Time' },
+          { value: BROWSE_MODE.MSGID, name: 'Message ID' }
+        );
+      } else {
+        // If replay disabled for topics, we still need a default mode
+        // But topics don't support BASIC mode, so we'll just show empty or handle differently
+        modes.push({ value: BROWSE_MODE.BASIC, name: 'Default' });
+      }
+      return ['Topic', modes];
+    } else {
+      return ['', [{ value: null }]];
+    }
+  };
+
+  const [sourceLabel, browseModes] = getBrowseModes();
 
   const [minDate, maxDate] = [new Date(minTime * 1000), new Date(maxTime * 1000)];
 
@@ -187,6 +203,18 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
     // Don't call raiseOnChange here - wait for queueDetails to load
     // The queueDetails effect will trigger browsing for non-partitioned queues
   }, [brokerId, sourceType, sourceName]);
+
+  // Reset to BASIC mode if replay features are disabled and current mode is replay-based
+  useEffect(() => {
+    if (!settings.replayFeaturesEnabled && isReplayBasedMode(browseMode)) {
+      setBrowseMode(BROWSE_MODE.BASIC);
+      // Trigger browsing with basic mode - use onChange directly to avoid dependency issues
+      setTimeout(() => {
+        onChange({ browseMode: BROWSE_MODE.BASIC });
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.replayFeaturesEnabled, browseMode]);
 
   // Fetch queue message count and details when a queue is selected
   useEffect(() => {
@@ -295,6 +323,13 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
   };
 
   const handleBrowseModeChange = ({ value: mode }) => {
+    // If replay features are disabled, force BASIC mode
+    if (!settings.replayFeaturesEnabled) {
+      setBrowseMode(BROWSE_MODE.BASIC);
+      setTimeout(() => raiseOnChange(BROWSE_MODE.BASIC), 0);
+      return;
+    }
+
     // Check if this is a partitioned queue - browsing is not supported
     if (isPartitionedQueue()) {
       toast.current?.show({
@@ -483,18 +518,22 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
                 />
               </div>
               
-              {/* Sort Order */}
-              <label>Sort By</label>
-              <Dropdown 
-                value={browseMode} 
-                onChange={handleBrowseModeChange} 
-                options={browseModes} 
-                optionLabel="name" 
-                disabled={partitioned}
-              />
+              {/* Sort Order - only show if replay features are enabled */}
+              {settings.replayFeaturesEnabled && (
+                <>
+                  <label>Sort By</label>
+                  <Dropdown 
+                    value={browseMode} 
+                    onChange={handleBrowseModeChange} 
+                    options={browseModes} 
+                    optionLabel="name" 
+                    disabled={partitioned}
+                  />
+                </>
+              )}
               
               {/* Sort Order Additional Input (Date range / Message ID) */}
-              {isReplayBasedMode(browseMode) && (
+              {settings.replayFeaturesEnabled && isReplayBasedMode(browseMode) && (
                 (browseMode === BROWSE_MODE.HEAD) ?
                 null :
                 (browseMode === BROWSE_MODE.TAIL) ?
