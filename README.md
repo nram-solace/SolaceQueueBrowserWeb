@@ -1,87 +1,212 @@
-# Solace Queue Browser Utility
+# 🔍 SolQBrowser/Web 
 
-This project offers a Solace Queue Browser which can run either as a desktop application (Windows, Mac, and Linux) or fully in-browser with certain restrictions. Most of the capabilities of the tool require interacting with a Solace broker using both SEMP and the Solace Javascript client library, and as such, users must provide two sets of credentials to establish a connection.
+**A  tool for browsing, inspecting, and managing messages on Solace PubSub+ Event Brokers.**
 
-> [!IMPORTANT]
-> Most of the capabilities of this tool require replay to be enabled. In most modes of operation, the utiltiy assumes all messages found on a given queue are also present on the Replay Log. Unexpected behavior may occur if the replay log has been trimmed while messages are still on the queue, or if replay filtering results in a mix replayable and non-replayable messages. Additionally, the browser will typically show messages that have been acknowledged out-of-order as still being present on a given queue.
+SolQBrowser/Web is a cross-platform utility that runs as a **desktop application** (Windows, Mac, Linux), **fully in-browser**, or as a **Docker container**. It provides comprehensive queue browsing capabilities, message inspection, and bulk operations for managing messages on Solace brokers.
 
-A browser-based version of this utility can be [found here](https://solacecommunity.github.io/solace-queue-browser).
+> **🌐 Try it now:** A public browser-based version is available at [solace-queue-browser-web.vercel.app](https://solace-queue-browser-web.vercel.app/)
+>
+> **🔒 Privacy:** The web version runs entirely in your browser. No data is shared or stored outside your local machine. All connections are made directly from your browser to your broker.
 
-## Core Capabilities
+---
 
-- Bidrectionally browsing a queue (replay-based) from:
-  - The oldest message (queue head)
-  - The newest message (queue tail)
-  - A specified date/time
-  - A specified RGMID or Message ID
-- Forward-only basic queue browing (no replay required)
-- Client-side payload and header filtering
+## ✨ Key Features
 
-Additionally, the following features are planned:
-- Republishing messages from one queue to another
-- Browsing messages based on topic an selectors
-- Browsing of Partitioned Queues
+### 🌐 Universal Broker Support
 
-## Project Design and Architecture
+Connect to any Solace PubSub+ broker deployment type:
 
-All UI components of the project are written in HTML/JS using the Prime React component library.
+- **☁️ Solace Cloud** - Managed cloud instances
+- **🏢 Solace Appliances** - Hardware appliance deployments  
+- **💻 Software Brokers** - Self-hosted broker instances
+- **🔧 AEM Brokers** - Adobe Experience Manager configurations
 
-### Browser Mode
-To run the application in browser mode, check out the source code and run:
+### 📊 Advanced Queue Browsing
 
+**Message Browsing**:
+- ➡️ Forward-only queue browsing with pagination
+- 🔍 Client-side filtering (payload, headers, user properties)
+- 📄 Message content inspection and formatting
+- ✅ Works with any queue configuration
+
+**Advanced Browsing** (Requires replay logs):
+- ⬅️➡️ Bidirectional navigation (forward and backward)
+- 📌 Start from **oldest message** (queue head)
+- 📌 Start from **newest message** (queue tail)
+- 🕐 Jump to specific **date/time**
+- 🔢 Navigate to specific **message by ID** (RGMID or Message ID)
+
+### 🔍 Message Inspection & Analysis
+
+Multi-panel message viewing with comprehensive details:
+
+- **📄 Payload View** - JSON formatting, text view, raw binary with syntax highlighting
+- **📋 Headers View** - All message headers and properties
+- **🏷️ User Properties** - Custom key-value properties in searchable format
+- **ℹ️ Metadata** - Message IDs, timestamps, sequence numbers, delivery info
+
+### 🔄 Bulk Message Operations
+
+Manage messages across queues with powerful batch operations:
+
+- **📋 Copy Messages** - Copy selected messages to another queue (source preserved)
+- **➡️ Move Messages** - Move messages between queues (copy + delete)
+- **🗑️ Delete Messages** - Bulk delete with progress tracking
+- **⏱️ Progress Monitoring** - Real-time progress bars and operation status
+- **📊 Results Summary** - Detailed success/failure reports
+
+### 🔎 Search & Filtering
+
+- **🔍 Global Search** - Filter messages by content across payload, headers, and user properties
+- **⚡ Client-side Filtering** - Instant results without server round-trips
+- **📝 Multi-field Search** - Search across all message components simultaneously
+
+---
+
+## 🎯 Use Cases
+
+- 🔧 **Troubleshooting** - Inspect queue contents and message flow
+- 🐛 **Debugging** - Analyze message payloads and headers
+- 📊 **Analysis** - Review message patterns and content
+- 🔄 **Migration** - Copy or move messages between queues
+- 🧹 **Cleanup** - Bulk delete unwanted messages
+- ✅ **Verification** - Confirm message content and structure
+
+---
+
+## ⚠️ Important Requirements
+
+### Replay Log Support
+
+> **📌 Basic Browsing** works with **any queue** - replay logs are NOT required.
+
+**Advanced features require replay logs enabled:**
+- Bidirectional browsing (head/tail navigation)
+- Time-based browsing
+- Message ID navigation
+
+**⚠️ Constraints:** Advanced features assume all queue messages are present in the Replay Log. Unexpected behavior may occur if:
+- Replay log has been trimmed while messages remain on queue
+- Replay filtering creates mixed replayable/non-replayable message sets
+- Messages were acknowledged out-of-order
+
+### Browser Mode Configuration
+
+When running in browser mode:
+- **🌐 CORS Configuration** - Broker SEMP service must allow cross-origin requests. The public endpoint and Docker version bypass this requirement by running a proxy server.
+- **🔒 TLS Matching** - Browser and broker TLS must match (HTTP ↔ HTTP, HTTPS ↔ HTTPS)
+
+### 🐳 Docker Mode Benefits
+
+Docker mode provides several advantages:
+- **✅ No CORS Configuration** - Built-in proxy server handles CORS automatically
+- **✅ Easy Deployment** - Containerized deployment with consistent environment
+- **✅ Health Checks** - Built-in health monitoring
+- **✅ Distribution Ready** - Pre-built images for easy client distribution
+- **✅ Port Flexibility** - Configurable port via environment variable
+
+---
+
+## 🚀 Quick Start
+
+### 🐳 Docker Mode (Recommended for Server Deployment)
+
+Docker mode includes a built-in proxy server that handles CORS, eliminating the need to configure broker CORS settings.
+
+**Using Docker Compose:**
+```bash
+docker-compose -f docker/docker-compose.yml up -d
 ```
-> npm install
-> npm run dev
+
+**Using Docker directly:**
+```bash
+# Build the image
+docker build -f docker/Dockerfile -t solace-queue-browser .
+
+# Run the container
+docker run -p 3000:3000 solace-queue-browser
 ```
 
-Then open up a browser session and navigate to http://localhost:1420/.
+Access at `http://localhost:3000`
 
-> [!NOTE]
-> When running the application via a browser, the broker SEMP service must be [configured to allow any host](https://docs.solace.com/Services/Managing-Services.htm#managing-cross-origin-resource-sharing). Also, if the Queue Browser is hosted on a domain other than `localhost`, the browser and broker TLS configuration must match. For example, running the utility from over HTTP allows connecting to HTTP (non secured) brokers, while running from an HTTPS site will only permit connecting to HTTPS brokers.
-
-### Desktop Mode
-
-Running this project as a desktop application assumes you have a Rust compiler installed on your system. The complete steps and prerequisites for building a Tauri app can be [found here](https://v1.tauri.app/v1/guides/getting-started/prerequisites/).
-
-Once the prerequisites have been met, it is possible to run in desktop mode:
-
+**Custom Port:**
+```bash
+docker run -p 8080:8080 -e PORT=8080 solace-queue-browser
 ```
+
+**Pre-built Docker Image Distribution:**
+```bash
+# Create distributable package (uses version from src/config/version.js)
+./docker/create-docker-dist.sh
+
+# Clients can then load and run:
+docker load < dist-docker/solace-queue-browser-*.tar.gz
+docker run -d -p 3000:3000 --name solace-queue-browser solace-queue-browser:<version>
+```
+
+### 🌐 Browser Mode
+
+```bash
+npm install
+npm run dev
+```
+
+Navigate to `http://localhost:1420/`
+
+### 🖥️ Desktop Mode
+
+Prerequisites: Rust compiler (see [Tauri prerequisites](https://v1.tauri.app/v1/guides/getting-started/prerequisites/))
+
+```bash
 npm install
 npm run tauri dev
 ```
 
-## Publishing Project to GitHub Pages
+### Connection Setup
 
-A simple version of this app is available via GitHub pages, on the `gh-pages` branch of the repository. In order to publish a new release to pages, follow this procedure:
+1. **➕ Add Broker** - Click to configure broker connection
+2. **🔐 Enter Credentials**:
+   - Broker URL
+   - VPN Name
+   - SEMP API credentials
+   - Messaging API credentials
+3. **✅ Connect** - Select a queue from the tree view and start browsing
 
-_Checkout the pages branch and pull latest changes from main_
-```
+---
+
+## 🏗️ Architecture
+
+Built with modern web technologies:
+
+- **⚛️ React** - UI framework
+- **🎨 PrimeReact** - Component library
+- **📦 Solace JavaScript API** - Messaging client
+- **🖥️ Tauri** - Desktop application framework (optional)
+- **🔌 SEMP API** - Broker management
+
+All UI components are written in HTML/JS using the Prime React component library.
+
+---
+
+## 📖 Publishing to GitHub Pages
+
+The app is published to GitHub Pages on the `gh-pages` branch:
+
+```bash
 git checkout gh-pages
 git pull origin main
-```
-Resove any merge conflicts, if any, and continue.
-
-_Create a production build and publish to the desired target (latest or stable)_
-```
 npm run build
 npm run publish latest
-```
-
-_Preview the changes locally_
-```
-npm run preview
-```
-Open a browser and navigate to http://localhost:4173/stable/ or http://localhost:4173/latest/ to verify changes before pushing.
-
-_Commit the changes and push back to the repo_
-```
+npm run preview  # Verify at http://localhost:4173/latest/
 git add -A
 git commit -a -m "Update latest with new feature ..."
 git push origin gh-pages
 ```
 
-A note to maintainers: the build process will insert a timestamp into the `index.html` which can be observed for troubleshooting by inspecting the page content. For example, the HTML of the website should begin as follows:
-```
-<!doctype html>
-<html lang="en" data-build-time="2024-12-19T22:03:42.043Z">
-```
+---
+
+## 🔮 Planned Features
+
+## 📄 License
+
+See [LICENSE](LICENSE) file for details.
