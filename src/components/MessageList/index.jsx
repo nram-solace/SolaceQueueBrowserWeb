@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
@@ -16,11 +16,13 @@ import MessageListToolbar from './MessageListToolbar';
 import { ActionApiClient } from '../../utils/solace/semp/actionApi';
 import { BulkOperationManager } from '../../utils/bulkOperationManager';
 import { SOURCE_TYPE } from '../../hooks/solace';
+import { showErrorToast, showSuccessToast, showWarningToast } from '../../utils/toast';
 import QueueSelectionDialog from '../QueueSelectionDialog';
 import BulkOperationProgressDialog from '../BulkOperationProgressDialog';
 import BulkOperationResultDialog from '../BulkOperationResultDialog';
 
 import classes from './styles.module.css';
+import PropTypes from 'prop-types';
 
 export default function MessageList({ sourceDefinition, browser, selectedMessage, onBrowseFromChange, onMessageSelect }) {
   const { sourceName, type, config } = sourceDefinition;
@@ -86,12 +88,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
         console.debug('Permission error (user notified via toast):', errorMessage);
         // Use setTimeout to ensure the toast is shown after the current render cycle
         setTimeout(() => {
-          toast.current?.show({
-            severity: 'warn',
-            summary: 'Permission Denied',
-            detail: errorMessage,
-            life: 5000
-          });
+          showWarningToast(toast, errorMessage, 'Permission Denied', 5000);
         }, 0);
       } else if (isStateTransitionError) {
         // State transition errors are race conditions, suppress notification
@@ -100,12 +97,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
         // Log unexpected errors at error level
         console.error('Error loading messages', err);
         // Show error toast notification for other errors
-        toast.current?.show({
-          severity: 'error',
-          summary: 'Error Loading Messages',
-          detail: errorMessage,
-          life: 7000
-        });
+        showErrorToast(toast, errorMessage, 'Loading Messages', 7000);
       }
     }
     setIsLoading(false);
@@ -151,7 +143,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     setFilters({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
   }, [sourceName, type, config?.id]);
 
-  const handleBulkSelection = (e) => {
+  const handleBulkSelection = useCallback((e) => {
     // Handle multi-select for bulk operations
     // Only allow selection via checkbox, not row clicks
     let allowSelection = false;
@@ -185,9 +177,9 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       setSelectedMessages(selected);
     }
     // If it's a row click (click event on non-checkbox), ignore the selection change
-  };
+  }, []);
 
-  const handleRowClick = (e) => {
+  const handleRowClick = useCallback((e) => {
     // Handle single selection for message detail view (on row click, not checkbox)
     // Prevent row click from selecting for bulk operations
     const isCheckbox = e.originalEvent?.target?.closest?.('.p-checkbox') ||
@@ -196,13 +188,13 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     if (e.data && !isCheckbox) {
       onMessageSelect?.(e.data);
     }
-  };
+  }, [onMessageSelect]);
 
-  const handleFilterChange = (e) => {
+  const handleFilterChange = useCallback((e) => {
     const value = e.target.value;
-    setFilters({ global: { ...filters.global, value } });
+    setFilters(prevFilters => ({ global: { ...prevFilters.global, value } }));
     setGlobalFilterValue(value);
-  };
+  }, []);
 
   const handleFirstClick = () => {
     loadMessages(() => browser.getFirstPage());
@@ -249,23 +241,13 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const performDelete = async (message) => {
     if (!config || !sourceName) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Broker configuration or queue name is missing.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Broker configuration or queue name is missing.', 'Error');
       return;
     }
 
     const msgId = message.meta?.msgId;
     if (!msgId) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Message ID is missing. Cannot delete message.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Message ID is missing. Cannot delete message.', 'Error');
       return;
     }
 
@@ -282,12 +264,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
         throw new Error(`Unsupported source type: ${type}`);
       }
 
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: `Message ${msgId} deleted successfully.`,
-        life: 3000
-      });
+      showSuccessToast(toast, `Message ${msgId} deleted successfully.`);
 
       // Refresh the current page to reflect the deletion
       // Reload the first page to ensure we see the updated message list
@@ -302,16 +279,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       }
     } catch (err) {
       console.error('Error deleting message:', err);
-      const errorDetail = err.response?.body?.meta?.error?.description || 
-                         err.message || 
-                         'Unknown error occurred while deleting message.';
-      
-      toast.current.show({
-        severity: 'error',
-        summary: 'Delete Failed',
-        detail: errorDetail,
-        life: 5000
-      });
+      showErrorToast(toast, err, 'Delete');
     } finally {
       setIsLoading(false);
     }
@@ -319,34 +287,19 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const handleCopyMessage = (message) => {
     if (!config || !sourceName) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Broker configuration or queue name is missing.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Broker configuration or queue name is missing.', 'Error');
       return;
     }
 
     const replicationGroupMsgId = message.headers?.replicationGroupMsgId || message.meta?.replicationGroupMsgId;
     if (!replicationGroupMsgId) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Replication Group Message ID is missing. Cannot copy message.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Replication Group Message ID is missing. Cannot copy message.', 'Error');
       return;
     }
 
     // Only allow copy for queues (not topic endpoints)
     if (type !== SOURCE_TYPE.QUEUE && type !== SOURCE_TYPE.BASIC) {
-      toast.current.show({
-        severity: 'warn',
-        summary: 'Not Supported',
-        detail: 'Copy operation is only supported for queues.',
-        life: 5000
-      });
+      showWarningToast(toast, 'Copy operation is only supported for queues.', 'Not Supported');
       return;
     }
 
@@ -357,34 +310,19 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const handleMoveMessage = (message) => {
     if (!config || !sourceName) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Broker configuration or queue name is missing.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Broker configuration or queue name is missing.', 'Error');
       return;
     }
 
     const replicationGroupMsgId = message.headers?.replicationGroupMsgId || message.meta?.replicationGroupMsgId;
     if (!replicationGroupMsgId) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Replication Group Message ID is missing. Cannot move message.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Replication Group Message ID is missing. Cannot move message.', 'Error');
       return;
     }
 
     // Only allow move for queues (not topic endpoints)
     if (type !== SOURCE_TYPE.QUEUE && type !== SOURCE_TYPE.BASIC) {
-      toast.current.show({
-        severity: 'warn',
-        summary: 'Not Supported',
-        detail: 'Move operation is only supported for queues.',
-        life: 5000
-      });
+      showWarningToast(toast, 'Move operation is only supported for queues.', 'Not Supported');
       return;
     }
 
@@ -419,12 +357,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     const msgIdDisplay = msgId || replicationGroupMsgId || 'Unknown';
 
     if (!config || !sourceName || !replicationGroupMsgId) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Required information is missing.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Required information is missing.', 'Error');
       return;
     }
 
@@ -444,12 +377,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       // If move operation, delete the message from source
       if (operation === 'move') {
         if (!msgId) {
-          toast.current.show({
-            severity: 'error',
-            summary: 'Move Failed',
-            detail: 'Message ID is missing. Message was copied but not deleted from source.',
-            life: 5000
-          });
+          showErrorToast(toast, 'Message ID is missing. Message was copied but not deleted from source.', 'Move');
           setIsLoading(false);
           await loadMessages(() => browser.getFirstPage());
           return;
@@ -462,13 +390,12 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
           const deleteErrorDetail = deleteErr.response?.body?.meta?.error?.description || 
                                   deleteErr.message || 
                                   'Unknown error occurred while deleting message.';
-          
-          toast.current.show({
-            severity: 'warn',
-            summary: 'Partial Success',
-            detail: `Message was copied to ${destQueueName}, but failed to delete from source: ${deleteErrorDetail}`,
-            life: 7000
-          });
+          showWarningToast(
+            toast,
+            `Message was copied to ${destQueueName}, but failed to delete from source: ${deleteErrorDetail}`,
+            'Partial Success',
+            7000
+          );
           setIsLoading(false);
           await loadMessages(() => browser.getFirstPage());
           // Refresh queue summary even on partial success (message count may have changed)
@@ -479,12 +406,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
       // Success feedback
       const operationText = operation === 'move' ? 'moved' : 'copied';
-      toast.current.show({
-        severity: 'success',
-        summary: 'Success',
-        detail: `Message ${msgIdDisplay} ${operationText} to ${destQueueName} successfully.`,
-        life: 3000
-      });
+      showSuccessToast(toast, `Message ${msgIdDisplay} ${operationText} to ${destQueueName} successfully.`);
 
       // Refresh the message list
       await loadMessages(() => browser.getFirstPage());
@@ -502,17 +424,8 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       }
     } catch (err) {
       console.error(`Error ${operation}ing message:`, err);
-      const errorDetail = err.response?.body?.meta?.error?.description || 
-                         err.message || 
-                         `Unknown error occurred while ${operation}ing message.`;
-      
       const operationText = operation === 'move' ? 'Move' : 'Copy';
-      toast.current.show({
-        severity: 'error',
-        summary: `${operationText} Failed`,
-        detail: errorDetail,
-        life: 5000
-      });
+      showErrorToast(toast, err, operationText);
     } finally {
       setIsLoading(false);
     }
@@ -542,6 +455,12 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       ...Object.values(message.userProperties || {})
     ]
   });
+
+  // Memoize filtered messages to prevent unnecessary recalculations
+  const filteredMessages = useMemo(() => 
+    messages.map(addFilterField), 
+    [messages]
+  );
 
   const getRowClassName = (rowData) => {
     if (!selectedMessage) {
@@ -583,12 +502,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   // Bulk operation handlers
   const handleBulkDelete = () => {
     if (selectedMessages.length === 0) {
-      toast.current.show({
-        severity: 'warn',
-        summary: 'No Selection',
-        detail: 'Please select messages to delete.',
-        life: 3000
-      });
+      showWarningToast(toast, 'Please select messages to delete.', 'No Selection', 3000);
       return;
     }
 
@@ -617,22 +531,12 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const handleBulkCopy = () => {
     if (selectedMessages.length === 0) {
-      toast.current.show({
-        severity: 'warn',
-        summary: 'No Selection',
-        detail: 'Please select messages to copy.',
-        life: 3000
-      });
+      showWarningToast(toast, 'Please select messages to copy.', 'No Selection', 3000);
       return;
     }
 
     if (type !== SOURCE_TYPE.QUEUE && type !== SOURCE_TYPE.BASIC) {
-      toast.current.show({
-        severity: 'warn',
-        summary: 'Not Supported',
-        detail: 'Copy operation is only supported for queues.',
-        life: 5000
-      });
+      showWarningToast(toast, 'Copy operation is only supported for queues.', 'Not Supported');
       return;
     }
 
@@ -642,22 +546,12 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const handleBulkMove = () => {
     if (selectedMessages.length === 0) {
-      toast.current.show({
-        severity: 'warn',
-        summary: 'No Selection',
-        detail: 'Please select messages to move.',
-        life: 3000
-      });
+      showWarningToast(toast, 'Please select messages to move.', 'No Selection', 3000);
       return;
     }
 
     if (type !== SOURCE_TYPE.QUEUE && type !== SOURCE_TYPE.BASIC) {
-      toast.current.show({
-        severity: 'warn',
-        summary: 'Not Supported',
-        detail: 'Move operation is only supported for queues.',
-        life: 5000
-      });
+      showWarningToast(toast, 'Move operation is only supported for queues.', 'Not Supported');
       return;
     }
 
@@ -675,12 +569,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const performBulkDelete = async (messages) => {
     if (!config || !sourceName) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Broker configuration or queue name is missing.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Broker configuration or queue name is missing.', 'Error');
       return;
     }
 
@@ -723,12 +612,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       setSelectedMessages([]);
     } catch (err) {
       console.error('Error in bulk delete:', err);
-      toast.current.show({
-        severity: 'error',
-        summary: 'Operation Failed',
-        detail: err.message || 'An error occurred during bulk delete operation.',
-        life: 5000
-      });
+      showErrorToast(toast, err, 'Bulk Delete');
       setBulkOperationInProgress(false);
     } finally {
       cancelTokenRef.current = null;
@@ -737,12 +621,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const performBulkCopy = async (messages, destQueueName) => {
     if (!config || !sourceName) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Broker configuration or queue name is missing.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Broker configuration or queue name is missing.', 'Error');
       return;
     }
 
@@ -781,12 +660,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       // Preserve selection (messages remain in source)
     } catch (err) {
       console.error('Error in bulk copy:', err);
-      toast.current.show({
-        severity: 'error',
-        summary: 'Operation Failed',
-        detail: err.message || 'An error occurred during bulk copy operation.',
-        life: 5000
-      });
+      showErrorToast(toast, err, 'Bulk Copy');
       setBulkOperationInProgress(false);
       setPendingBulkOperation(null);
     } finally {
@@ -796,12 +670,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const performBulkMove = async (messages, destQueueName) => {
     if (!config || !sourceName) {
-      toast.current.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Broker configuration or queue name is missing.',
-        life: 5000
-      });
+      showErrorToast(toast, 'Broker configuration or queue name is missing.', 'Error');
       return;
     }
 
@@ -844,12 +713,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       setSelectedMessages([]);
     } catch (err) {
       console.error('Error in bulk move:', err);
-      toast.current.show({
-        severity: 'error',
-        summary: 'Operation Failed',
-        detail: err.message || 'An error occurred during bulk move operation.',
-        life: 5000
-      });
+      showErrorToast(toast, err, 'Bulk Move');
       setBulkOperationInProgress(false);
       setPendingBulkOperation(null);
     } finally {
@@ -905,7 +769,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
         <div style={{ flex: '1', overflow: 'hidden' }}>
           <DataTable
             className={classes.messageListTable}
-            value={messages.map(addFilterField)}
+            value={filteredMessages}
             size="small"
             scrollable
             resizableColumns
@@ -974,3 +838,15 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     )
   );
 }
+
+MessageList.propTypes = {
+  sourceDefinition: PropTypes.shape({
+    sourceName: PropTypes.string,
+    type: PropTypes.string,
+    config: PropTypes.object
+  }).isRequired,
+  browser: PropTypes.object.isRequired,
+  selectedMessage: PropTypes.object,
+  onBrowseFromChange: PropTypes.func.isRequired,
+  onMessageSelect: PropTypes.func
+};

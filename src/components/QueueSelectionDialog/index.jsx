@@ -81,6 +81,21 @@ export default function QueueSelectionDialog({ visible, config, currentQueueName
     </div>
   );
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && visible) {
+        handleHide();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [visible, handleHide]);
+
   return (
     <Dialog
       className={classes.queueSelectionDialog}

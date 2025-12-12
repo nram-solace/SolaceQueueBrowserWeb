@@ -13,6 +13,8 @@ import classes from './styles.module.css';
 import { useEffect, useState, useRef } from 'react';
 import { useSempApi } from '../../providers/SempClientProvider';
 import solace from '../../utils/solace/solclientasync';
+import { showErrorToast, showSuccessToast, showToast } from '../../utils/toast';
+import PropTypes from 'prop-types';
         
 export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
   const visible = (config !== null);
@@ -134,23 +136,13 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
   const handleGetVpns = async () => {
     // Validate required fields
     if (!values.hostName || !values.sempPort || !values.sempUsername || !values.sempPassword) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill in Management (SEMP) hostname, port, username and password to fetch VPNs.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Please fill in Management (SEMP) hostname, port, username and password to fetch VPNs.', 'Validation Error', 3000);
       return;
     }
 
     // Validate port is numeric
     if (isNaN(parseInt(values.sempPort))) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'SEMP Port must be a number.',
-        life: 3000
-      });
+      showErrorToast(toast, 'SEMP Port must be a number.', 'Validation Error', 3000);
       return;
     }
 
@@ -176,23 +168,13 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         setVpnList(vpns);
         setVpnsLoaded(true);
       } else {
-        toast.current?.show({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Failed to fetch VPNs from broker.',
-          life: 3000
-        });
+        showErrorToast(toast, 'Failed to fetch VPNs from broker.', 'Error', 3000);
         setVpnList([]);
       }
     } catch (err) {
       console.error('Error fetching VPNs:', err);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'Failed to fetch VPNs from broker.',
-        life: 3000
-      });
-      setVpnList([]);
+        showErrorToast(toast, 'Failed to fetch VPNs from broker.', 'Error', 3000);
+        setVpnList([]);
     } finally {
       setIsLoadingVpns(false);
     }
@@ -279,44 +261,24 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
   const handleTestConnection = async () => {
     // Validate required fields
     if (!values.messagingHost && !values.hostName) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill in Messaging (SMF) Host or IP.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Please fill in Messaging (SMF) Host or IP.', 'Validation Error', 3000);
       return;
     }
 
     if (!values.clientPort || !values.clientUsername || !values.clientPassword) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill in Websocket Port, Client Username and Password.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Please fill in Websocket Port, Client Username and Password.', 'Validation Error', 3000);
       return;
     }
 
     // Validate port is numeric
     if (isNaN(parseInt(values.clientPort))) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Websocket Port must be a number.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Websocket Port must be a number.', 'Validation Error', 3000);
       return;
     }
 
     // Validate at least one VPN selected
     if (!selectedVpns || selectedVpns.length === 0) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please select at least one VPN to test.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Please select at least one VPN to test.', 'Validation Error', 3000);
       return;
     }
 
@@ -345,29 +307,19 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
         }
         detailMessage += `✗ Failed (${failedConnections.length}):\n${errorDetails}\n\nPlease check the messaging host, port, credentials, and VPN access.`;
         
-        toast.current?.show({
-          severity: 'error',
-          summary: `${protocol} Connection Test Results`,
-          detail: detailMessage,
-          life: 10000
-        });
+        showErrorToast(toast, detailMessage, `${protocol} Connection Test Results`, 10000);
       } else {
         // All connections succeeded
-        toast.current?.show({
-          severity: 'success',
-          summary: 'Broker connection successful',
-          detail: `All ${selectedVpns.length} VPN connection${selectedVpns.length === 1 ? '' : 's'} tested successfully:\n${selectedVpns.join(', ')}`,
-          life: 5000
-        });
+        showSuccessToast(
+          toast,
+          `All ${selectedVpns.length} VPN connection${selectedVpns.length === 1 ? '' : 's'} tested successfully:\n${selectedVpns.join(', ')}`,
+          'Broker connection successful',
+          5000
+        );
       }
     } catch (err) {
       console.error('Error during connection test:', err);
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Connection Test Error',
-        detail: 'An unexpected error occurred during connection testing. Please try again.',
-        life: 5000
-      });
+      showErrorToast(toast, 'An unexpected error occurred during connection testing. Please try again.', 'Connection Test Error');
     } finally {
       setIsTestingConnection(false);
     }
@@ -377,55 +329,30 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
   const handleSave = () => {
     // Validate Step 1 required fields
     if (!values.name || !values.hostName || !values.sempPort || !values.sempUsername || !values.sempPassword) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required Step 1 fields.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Please fill in all required Step 1 fields.', 'Validation Error', 3000);
       return;
     }
 
     // Validate Step 2 required fields
     if (!values.clientPort || !values.clientUsername || !values.clientPassword) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please fill in all required Step 2 fields.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Please fill in all required Step 2 fields.', 'Validation Error', 3000);
       return;
     }
 
     // Validate ports are numeric
     if (isNaN(parseInt(values.sempPort))) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'SEMP Port must be a number.',
-        life: 3000
-      });
+      showErrorToast(toast, 'SEMP Port must be a number.', 'Validation Error', 3000);
       return;
     }
 
     if (isNaN(parseInt(values.clientPort))) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Websocket Port must be a number.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Websocket Port must be a number.', 'Validation Error', 3000);
       return;
     }
 
     // Validate at least one VPN selected
     if (!selectedVpns || selectedVpns.length === 0) {
-      toast.current?.show({
-        severity: 'error',
-        summary: 'Validation Error',
-        detail: 'Please select at least one VPN.',
-        life: 3000
-      });
+      showErrorToast(toast, 'Please select at least one VPN.', 'Validation Error', 3000);
       return;
     }
 
@@ -453,12 +380,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
     });
 
     // Show success message
-    toast.current?.show({
-      severity: 'success',
-      summary: 'Success',
-      detail: `Created ${selectedVpns.length} broker entr${selectedVpns.length === 1 ? 'y' : 'ies'}.`,
-      life: 3000
-    });
+    showSuccessToast(toast, `Created ${selectedVpns.length} broker entr${selectedVpns.length === 1 ? 'y' : 'ies'}.`);
 
     // Close dialog
     onHide?.();
@@ -492,7 +414,7 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
 
   const handleTestConnectionEdit = async () => {
     const { message } = await brokerEditor.test(values);
-    toast.current.show(message);
+    showToast(toast, message);
   }
 
   const Header = () => {
@@ -1012,6 +934,21 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
     );
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && visible) {
+        handleHide();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [visible, handleHide]);
+
   return (
     <Dialog 
       className={classes.formDialog}
@@ -1026,3 +963,9 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
     </Dialog>
   );
 }
+
+BrokerConfigDialog.propTypes = {
+  config: PropTypes.object,
+  brokerEditor: PropTypes.object.isRequired,
+  onHide: PropTypes.func.isRequired
+};

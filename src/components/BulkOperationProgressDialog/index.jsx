@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Dialog } from 'primereact/dialog';
 import { ProgressBar } from 'primereact/progressbar';
 import { Button } from 'primereact/button';
@@ -12,6 +13,21 @@ export default function BulkOperationProgressDialog({
   current, 
   onCancel 
 }) {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && visible && progress < 100 && onCancel) {
+        onCancel();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [visible, progress, onCancel]);
+
   const footer = (
     <div className={classes.footer}>
       <Button 

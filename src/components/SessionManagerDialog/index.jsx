@@ -221,6 +221,21 @@ export default function SessionManagerDialog({ sessionManager, onHide, visible }
     />
   );
 
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && visible) {
+        onHide();
+      }
+    };
+
+    if (visible) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [visible, onHide]);
+
   return (
     <>
       <Dialog

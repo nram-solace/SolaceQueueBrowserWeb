@@ -12,6 +12,8 @@ import { confirmDialog } from 'primereact/confirmdialog';
 
 import { SOURCE_TYPE, BROWSE_MODE, SUPPORTED_BROWSE_MODES, MESSAGE_ORDER } from '../../hooks/solace';
 import { useSempApi } from '../../providers/SempClientProvider';
+import { debounce } from '../../utils/debounce';
+import PropTypes from 'prop-types';
 
 import classes from './styles.module.css';
 
@@ -38,6 +40,27 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
   const partitionedToastShownFor = useRef(null); // Track which queue we've shown the toast for
   const queueDetailsLoadedFor = useRef(null); // Track which queue we've loaded details for
   const toast = useRef(null);
+  
+  // Local state for search input value (for immediate visual feedback)
+  const [localSearchValue, setLocalSearchValue] = useState(globalFilterValue || '');
+  
+  // Store latest onFilterChange in ref to use in debounced function
+  const onFilterChangeRef = useRef(onFilterChange);
+  useEffect(() => {
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
+  
+  // Create stable debounced version of onFilterChange
+  const debouncedFilterChange = useRef(
+    debounce((value) => {
+      onFilterChangeRef.current({ target: { value } });
+    }, 400)
+  ).current;
+  
+  // Sync localSearchValue with globalFilterValue when it changes externally (e.g., clear filter)
+  useEffect(() => {
+    setLocalSearchValue(globalFilterValue || '');
+  }, [globalFilterValue]);
 
   // Fetch queue message count and details
   const fetchQueueDetails = async () => {
@@ -419,7 +442,7 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
       {/* Row 2: Search | Sort Order | Sort Order Additional Input (left) | N selected | Actions | Refresh (right) */}
       <Toolbar className={`${classes.messageListToolbar} ${classes.messageListToolbarSecondRow}`}
         start={() => {
-          const hasSearchText = globalFilterValue && String(globalFilterValue).trim().length > 0;
+          const hasSearchText = localSearchValue && String(localSearchValue).trim().length > 0;
           return (
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               {/* Search */}
@@ -427,8 +450,12 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
                 <IconField iconPosition="left">
                   <InputIcon className="pi pi-search" />
                   <InputText 
-                    value={globalFilterValue || ''} 
-                    onChange={onFilterChange} 
+                    value={localSearchValue} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setLocalSearchValue(value); // Update immediately for visual feedback
+                      debouncedFilterChange(value); // Apply filter after debounce
+                    }}
                     placeholder="Message Search" 
                   />
                 </IconField>
@@ -439,7 +466,8 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
                   size="small"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onFilterChange({ target: { value: '' } });
+                    setLocalSearchValue(''); // Clear immediately
+                    onFilterChange({ target: { value: '' } }); // Clear filter immediately (no debounce for clear)
                   }}
                   disabled={!hasSearchText}
                   tooltip="Clear search"
@@ -547,5 +575,23 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
     </div>
   );
 });
+
+MessageListToolbar.propTypes = {
+  sourceDefinition: PropTypes.shape({
+    type: PropTypes.string,
+    sourceName: PropTypes.string,
+    config: PropTypes.object
+  }).isRequired,
+  minTime: PropTypes.number,
+  maxTime: PropTypes.number,
+  onChange: PropTypes.func.isRequired,
+  selectedMessages: PropTypes.array,
+  globalFilterValue: PropTypes.string,
+  onFilterChange: PropTypes.func.isRequired,
+  onBulkCopy: PropTypes.func.isRequired,
+  onBulkMove: PropTypes.func.isRequired,
+  onBulkDelete: PropTypes.func.isRequired,
+  bulkOperationInProgress: PropTypes.bool
+};
 
 export default MessageListToolbar;

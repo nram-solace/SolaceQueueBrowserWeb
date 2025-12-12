@@ -18,6 +18,7 @@ import PasswordInputDialog from '../PasswordInputDialog';
 
 import { TopicIcon, LvqIcon, QueueIcon } from '../../icons';
 import { APP_TITLE } from '../../config/version';
+import PropTypes from 'prop-types';
 
 import classes from './styles.module.css';
 
@@ -733,3 +734,10 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     </div>
   );
 }
+
+TreeView.propTypes = {
+  brokers: PropTypes.arrayOf(PropTypes.object).isRequired,
+  brokerEditor: PropTypes.object.isRequired,
+  sessionManager: PropTypes.object.isRequired,
+  onSourceSelected: PropTypes.func.isRequired
+};
