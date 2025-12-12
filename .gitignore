@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-docker
+dist-package
 *.local
 
 # Editor directories and files
@@ -29,4 +31,4 @@ CLAUDE.md
 package-lock.json
 .vercel
 .vercelignore
-run.sh
+scripts/**
