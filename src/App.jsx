@@ -6,6 +6,7 @@ import { WINDOW_TITLE } from './config/version';
 
 import DesktopContainer from './components/DesktopContainer';
 import RootLayout from './components/RootLayout';
+import TitleBar from './components/TitleBar';
 import TreeView from './components/BrokerQueueTreeView';
 import MessageList from './components/MessageList';
 import WelcomeScreen from './components/WelcomeScreen';

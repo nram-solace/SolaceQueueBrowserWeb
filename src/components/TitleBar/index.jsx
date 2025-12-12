@@ -9,7 +9,13 @@ import { useEffect, useState } from "react";
 import { APP_TITLE, WINDOW_TITLE } from '../../config/version';
 
 export default function TitleBar() {
-  const [colorScheme, setColorScheme] = useState('light');
+  // Initialize theme state from HTML - check which theme is currently active
+  const getInitialTheme = () => {
+    const darkTheme = window.document.getElementById('theme-dark');
+    return darkTheme?.rel === 'stylesheet' ? 'dark' : 'light';
+  };
+
+  const [colorScheme, setColorScheme] = useState(() => getInitialTheme());
 
   const isColorSchemeDark = () => colorScheme === 'dark';
 
@@ -23,7 +29,7 @@ export default function TitleBar() {
 
   const toggleTheme = () => {
     setColorScheme(prev => {
-      const next = isColorSchemeDark() ? 'light' : 'dark';
+      const next = prev === 'dark' ? 'light' : 'dark';
       window.document.getElementById(`theme-${prev}`).rel = 'prefetch';
       window.document.getElementById(`theme-${next}`).rel = 'stylesheet';
       const contentFrame = window.document.querySelector('iframe');
@@ -74,7 +80,7 @@ export default function TitleBar() {
 
     return (
       <>
-        <Button text icon={PrimeIcons.SUN} onClick={toggleTheme} />
+        <Button text icon={isColorSchemeDark() ? PrimeIcons.SUN : PrimeIcons.MOON} onClick={toggleTheme} />
         <Button text icon={PrimeIcons.MINUS} onClick={minimizeWindow} />
         { 
           isMaximized ? 
@@ -89,6 +95,6 @@ export default function TitleBar() {
   return (
     <Toolbar className={classes.toolbar} data-tauri-drag-region
       start={AppTitle}
-      end={window.top.__TAURI__ ? ControlButtons : <Button text icon={PrimeIcons.SUN} onClick={toggleTheme} />} />
+      end={window.top.__TAURI__ ? ControlButtons : <Button text icon={isColorSchemeDark() ? PrimeIcons.SUN : PrimeIcons.MOON} onClick={toggleTheme} />} />
   );
 }

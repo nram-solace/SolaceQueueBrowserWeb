@@ -216,7 +216,14 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
       session.disconnect();
       return { success: true, vpnName };
     } catch (err) {
-      console.error('WebSocket connection error:', err);
+      console.error('WebSocket connection error details:', {
+        message: err.message,
+        toString: err.toString(),
+        responseCode: err.responseCode,
+        info: err.info,
+        str: err.str,
+        fullError: err
+      });
       
       let errorMessage = 'Unknown connection error';
       if (err.responseCode) {
@@ -228,11 +235,35 @@ export default function BrokerConfigDialog( { config, brokerEditor, onHide }) {
             errorMessage = `Connection failed with code ${err.responseCode}.`;
         }
       } else {
-        const errMsg = err.message || err.toString();
-        if (errMsg.includes('invalid URL')) {
+        const errMsg = err.message || err.toString() || err.str || '';
+        const errStr = errMsg.toLowerCase();
+        const errInfo = err.info || {};
+        const errInfoStr = JSON.stringify(errInfo).toLowerCase();
+        
+        // Check for certificate/SSL errors in message or info
+        const isCertError = errStr.includes('certificate') || 
+            errStr.includes('ssl') || 
+            errStr.includes('tls') ||
+            errStr.includes('cert') ||
+            errStr.includes('untrusted') ||
+            errStr.includes('invalid certificate') ||
+            errStr.includes('certificate verify failed') ||
+            errStr.includes('certificate chain') ||
+            errStr.includes('self-signed') ||
+            errStr.includes('sec_error') ||
+            errInfoStr.includes('certificate') ||
+            errInfoStr.includes('ssl') ||
+            errInfoStr.includes('tls');
+        
+        if (isCertError) {
+          const brokerUrl = `https://${hostName}:${values.clientPort}`;
+          errorMessage = `SSL/TLS certificate validation failed. To accept the certificate:\n\n1. Open this URL in your browser: ${brokerUrl}\n2. If you see a certificate warning, click "Advanced" and then "Proceed" or "Accept the Risk"\n3. This will add the certificate to your browser's trusted store\n4. Try connecting again\n\nNote: WebSocket connections don't show certificate prompts, so you must accept the certificate via a regular HTTPS page first.`;
+        } else if (errMsg.includes('invalid URL')) {
           errorMessage = 'Invalid broker URL.';
         } else if (errMsg.includes('Connection error') || errMsg.includes('NetworkError')) {
-          errorMessage = 'Unable to connect to broker. Please check the hostname, port, and network connectivity.';
+          // For generic connection errors, suggest certificate acceptance
+          const brokerUrl = `https://${hostName}:${values.clientPort}`;
+          errorMessage = `Unable to connect to broker. This may be a certificate issue.\n\nTry opening ${brokerUrl} in your browser first to accept the certificate, then try connecting again.`;
         } else if (errMsg.includes('timeout')) {
           errorMessage = 'Connection timeout. Please check the hostname and port.';
         } else {

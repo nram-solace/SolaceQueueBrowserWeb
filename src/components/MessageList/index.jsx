@@ -73,6 +73,13 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
         errorMessage.includes('Access denied') ||
         errorMessage.includes('Permission');
       
+      // Suppress "Invalid state: expected 'opening', current value 'closing'" errors
+      // These are race conditions during browser state transitions and don't need user notification
+      const isStateTransitionError = 
+        errorMessage.includes('Invalid state') &&
+        errorMessage.includes("expected 'opening'") &&
+        errorMessage.includes("current value 'closing'");
+      
       // Show dialog for permission errors, toast for other errors
       if (isPermissionError) {
         // Permission errors are expected and user is notified via popup, so log at debug level
@@ -90,6 +97,9 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
             }
           });
         }, 0);
+      } else if (isStateTransitionError) {
+        // State transition errors are race conditions, suppress notification
+        console.debug('State transition error (suppressed):', errorMessage);
       } else {
         // Log unexpected errors at error level
         console.error('Error loading messages', err);

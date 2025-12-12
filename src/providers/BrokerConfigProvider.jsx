@@ -301,23 +301,73 @@ export function useBrokerConfig() {
       await session.connect();
       session.disconnect();
     } catch (err) {
-      console.error(err);
+      console.error('WebSocket connection error details:', {
+        message: err.message,
+        toString: err.toString(),
+        responseCode: err.responseCode,
+        info: err.info,
+        str: err.str,
+        error: err.error,
+        fullError: err
+      });
 
       if(err.responseCode) switch(err.responseCode) {
         case 401:
           return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Unauthorized', detail: 'Incorrect client username or password.', life: 30000 }};
       }
       
-      const errMsg = err.message;
+      const errMsg = err.message || err.toString() || err.str || '';
+      const errStr = errMsg.toLowerCase();
+      const errInfo = err.info || {};
+      const errInfoStr = JSON.stringify(errInfo).toLowerCase();
+
+      // Check for certificate/SSL errors in message or info
+      const isCertError = errStr.includes('certificate') || 
+          errStr.includes('ssl') || 
+          errStr.includes('tls') ||
+          errStr.includes('cert') ||
+          errStr.includes('untrusted') ||
+          errStr.includes('invalid certificate') ||
+          errStr.includes('certificate verify failed') ||
+          errStr.includes('certificate chain') ||
+          errStr.includes('self-signed') ||
+          errStr.includes('sec_error') ||
+          errInfoStr.includes('certificate') ||
+          errInfoStr.includes('ssl') ||
+          errInfoStr.includes('tls');
+
+      if (isCertError) {
+        const brokerUrl = `https://${hostName}:${clientPort}`;
+        return { 
+          result: { connected: false, replay: false}, 
+          message: { 
+            severity:'error', 
+            summary: 'SMF: Certificate Error', 
+            detail: `SSL/TLS certificate validation failed. To accept the certificate:\n\n1. Open this URL in your browser: ${brokerUrl}\n2. If you see a certificate warning, click "Advanced" and then "Proceed" or "Accept the Risk"\n3. This will add the certificate to your browser's trusted store\n4. Try connecting again\n\nNote: WebSocket connections don't show certificate prompts, so you must accept the certificate via a regular HTTPS page first.`, 
+            life: 30000 
+          }
+        };
+      }
 
       if (errMsg.includes('invalid URL')) {
         return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Failure', detail: 'Invalid broker URL.', life: 30000 }};
       }
       if (errMsg.includes('Connection error')) {
-        return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Failure', detail: 'General connection error.', life: 30000 }};
+        // For generic connection errors, check if it might be a certificate issue
+        // by checking the browser console for WebSocket errors
+        const brokerUrl = `https://${hostName}:${clientPort}`;
+        return { 
+          result: { connected: false, replay: false}, 
+          message: { 
+            severity:'error', 
+            summary: 'SMF: Connection Error', 
+            detail: `Connection failed. This may be a certificate issue. Try:\n\n1. Open ${brokerUrl} in your browser to accept the certificate\n2. Check the browser console (F12) for detailed error messages\n3. Verify the hostname and port are correct`, 
+            life: 30000 
+          }
+        };
       }
 
-      return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Connection Error', detail: 'Unknown error!', life: 30000 }};    
+      return { result: { connected: false, replay: false}, message: { severity:'error', summary: 'SMF: Connection Error', detail: errMsg || 'Unknown error!', life: 30000 }};    
     }
 
     const sempClient = sempApi.getClient(config);

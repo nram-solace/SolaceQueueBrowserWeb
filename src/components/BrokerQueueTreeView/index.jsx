@@ -6,6 +6,7 @@ import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Dropdown } from 'primereact/dropdown';
+import { PrimeIcons } from 'primereact/api';
 
 import { Tree } from 'primereact/tree';
 
@@ -38,6 +39,30 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [groupBy, setGroupBy] = useState(null); // null, 'environment', 'region', or 'type'
 
   const sempApi = useSempApi();
+
+  // Theme toggle state and logic
+  const getInitialTheme = () => {
+    const darkTheme = window.document.getElementById('theme-dark');
+    return darkTheme?.rel === 'stylesheet' ? 'dark' : 'light';
+  };
+
+  const [colorScheme, setColorScheme] = useState(() => getInitialTheme());
+
+  const isColorSchemeDark = () => colorScheme === 'dark';
+
+  const toggleTheme = () => {
+    setColorScheme(prev => {
+      const next = prev === 'dark' ? 'light' : 'dark';
+      window.document.getElementById(`theme-${prev}`).rel = 'prefetch';
+      window.document.getElementById(`theme-${next}`).rel = 'stylesheet';
+      const contentFrame = window.document.querySelector('iframe');
+      if(contentFrame) {
+        contentFrame.contentDocument.getElementById(`theme-${prev}`).rel = 'prefetch';
+        contentFrame.contentDocument.getElementById(`theme-${next}`).rel = 'stylesheet';
+      }
+      return next;
+    });
+  };
 
   const getBrokerIcon = (testResult) => (
     testResult ? (
@@ -243,6 +268,9 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       // Clear the selected source to reset the message list when switching brokers
       onSourceSelected?.({});
       
+      // Always set the selected broker first, so it can be edited even if connection test fails
+      setSelectedBroker(config);
+      
       // Test connection and load queues when broker is selected
       setIsLoading(true);
       try {
@@ -261,8 +289,10 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
             setTopicsListMap(prev => ({ ...prev, [config.id]: topicNodeList }));
           }
         }
-        
-        setSelectedBroker(config);
+      } catch (err) {
+        // If test fails, still mark it as not connected but keep broker selected
+        console.error('Broker connection test failed:', err);
+        Object.assign(config, { testResult: { connected: false, replay: false } });
       } finally {
         setIsLoading(false);
       }
@@ -513,6 +543,15 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 tooltipOptions={{ position: 'bottom' }}
                 aria-label="Edit Broker"
                 disabled={!selectedBroker}
+              />
+              <Button 
+                icon={isColorSchemeDark() ? PrimeIcons.SUN : PrimeIcons.MOON} 
+                text 
+                size="small"
+                onClick={toggleTheme} 
+                tooltip={isColorSchemeDark() ? "Switch to Light Theme" : "Switch to Dark Theme"}
+                tooltipOptions={{ position: 'bottom' }}
+                aria-label="Toggle Theme"
               />
             </div>
             {brokers.length > 0 && (
