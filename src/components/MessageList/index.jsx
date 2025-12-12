@@ -80,21 +80,17 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
         errorMessage.includes("expected 'opening'") &&
         errorMessage.includes("current value 'closing'");
       
-      // Show dialog for permission errors, toast for other errors
+      // Show toast for permission errors
       if (isPermissionError) {
-        // Permission errors are expected and user is notified via popup, so log at debug level
-        console.debug('Permission error (user notified via popup):', errorMessage);
-        // Use setTimeout to ensure the dialog is shown after the current render cycle
+        // Permission errors are expected and user is notified via toast, so log at debug level
+        console.debug('Permission error (user notified via toast):', errorMessage);
+        // Use setTimeout to ensure the toast is shown after the current render cycle
         setTimeout(() => {
-          confirmDialog({
-            message: errorMessage,
-            header: 'Permission Denied',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'OK',
-            rejectClassName: 'hidden-reject',
-            accept: () => {
-              // Dialog closed, no action needed
-            }
+          toast.current?.show({
+            severity: 'warn',
+            summary: 'Permission Denied',
+            detail: errorMessage,
+            life: 5000
           });
         }, 0);
       } else if (isStateTransitionError) {
@@ -938,7 +934,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
           </DataTable>
         </div>
         <ConfirmDialog />
-        <Toast ref={toast} />
+        <Toast ref={toast} position="top-right" />
         <QueueSelectionDialog
           visible={queueDialogVisible}
           config={config}

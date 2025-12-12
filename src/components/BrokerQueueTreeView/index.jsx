@@ -491,11 +491,8 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       {/* Resizable Splitter for Broker List and Queue List */}
       <Splitter layout="vertical" className={classes.resizableSplitter}>
         {/* Middle Panel: Buttons + Broker List */}
-        <SplitterPanel size={30} minSize={15} className={classes.splitterPanel}>
+        <SplitterPanel size={40} minSize={15} className={classes.splitterPanel}>
           <div className={classes.middlePanel}>
-            <div className={classes.brokerListHeader}>
-              <strong>Event Brokers</strong>
-            </div>
             <div className={classes.buttonRow}>
               <Button 
                 icon="pi pi-plus" 
@@ -592,7 +589,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         </SplitterPanel>
 
         {/* Bottom Panel: Queue List */}
-        <SplitterPanel size={70} minSize={30} className={classes.splitterPanel}>
+        <SplitterPanel size={60} minSize={30} className={classes.splitterPanel}>
           <div className={classes.bottomPanel}>
             <div className={classes.queueListHeader}>
               <strong>Queues{selectedBroker ? ` - ${selectedBroker.displayName}` : ''}</strong>

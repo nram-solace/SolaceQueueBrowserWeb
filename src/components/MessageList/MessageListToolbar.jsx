@@ -7,6 +7,7 @@ import { InputText } from 'primereact/inputtext';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { Toolbar } from 'primereact/toolbar';
+import { Toast } from 'primereact/toast';
 import { confirmDialog } from 'primereact/confirmdialog';
 
 import { SOURCE_TYPE, BROWSE_MODE, SUPPORTED_BROWSE_MODES, MESSAGE_ORDER } from '../../hooks/solace';
@@ -34,8 +35,9 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
   const sempApi = useSempApi();
   const [messageCount, setMessageCount] = useState(null);
   const [queueDetails, setQueueDetails] = useState(null);
-  const partitionedDialogShownFor = useRef(null); // Track which queue we've shown the dialog for
+  const partitionedToastShownFor = useRef(null); // Track which queue we've shown the toast for
   const queueDetailsLoadedFor = useRef(null); // Track which queue we've loaded details for
+  const toast = useRef(null);
 
   // Fetch queue message count and details
   const fetchQueueDetails = async () => {
@@ -152,8 +154,8 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
   useEffect(() => {
     // Reset to Default when source changes
     setBrowseMode(BROWSE_MODE.BASIC);
-    // Reset the dialog tracking when source changes
-    partitionedDialogShownFor.current = null;
+    // Reset the toast tracking when source changes
+    partitionedToastShownFor.current = null;
     queueDetailsLoadedFor.current = null;
     // Clear queue details immediately to prevent stale data from being used
     setQueueDetails(null);
@@ -186,18 +188,14 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
           onChange({ browseMode: null, clearMessages: true });
         }
         
-        // Show dialog if we haven't shown it for this queue yet
-        if (partitionedDialogShownFor.current !== sourceName) {
-          partitionedDialogShownFor.current = sourceName;
-          confirmDialog({
-            message: 'Browsing is not supported for Partitioned Queues.',
-            header: 'Browsing Unsupported for this Queue',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'OK',
-            rejectClassName: 'hidden-reject',
-            accept: () => {
-              // Dialog closed, no action needed
-            }
+        // Show toast if we haven't shown it for this queue yet
+        if (partitionedToastShownFor.current !== sourceName) {
+          partitionedToastShownFor.current = sourceName;
+          toast.current?.show({
+            severity: 'warn',
+            summary: 'Browsing Unsupported for this Queue',
+            detail: 'Browsing is not supported for Partitioned Queues.',
+            life: 5000
           });
         }
         // Don't trigger browsing for partitioned queues
@@ -275,15 +273,11 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
   const handleBrowseModeChange = ({ value: mode }) => {
     // Check if this is a partitioned queue - browsing is not supported
     if (isPartitionedQueue()) {
-      confirmDialog({
-        message: 'Browsing is not supported for Partitioned Queues.',
-        header: 'Browsing Unsupported for this Queue',
-        icon: 'pi pi-exclamation-triangle',
-        acceptLabel: 'OK',
-        rejectClassName: 'hidden-reject',
-        accept: () => {
-          // Dialog closed, no action needed - keep current mode
-        }
+      toast.current?.show({
+        severity: 'warn',
+        summary: 'Browsing Unsupported for this Queue',
+        detail: 'Browsing is not supported for Partitioned Queues.',
+        life: 5000
       });
       return;
     }
@@ -406,6 +400,7 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <Toast ref={toast} position="top-right" />
       {/* Row 1: Queue Name and Details (left) */}
       <Toolbar 
         className={`${classes.messageListToolbar} ${classes.messageListToolbarFirstRow}`}
