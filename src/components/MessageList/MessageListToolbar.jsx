@@ -406,7 +406,7 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* Row 1: Queue Name and Details (left) | Search (right) */}
+      {/* Row 1: Queue Name and Details (left) */}
       <Toolbar 
         className={`${classes.messageListToolbar} ${classes.messageListToolbarFirstRow}`}
         start={() => (
@@ -419,11 +419,24 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
             )}
           </div>
         )}
-        end={() => {
+      />
+      
+      {/* Row 2: Search | Sort Order | Sort Order Additional Input (left) | N selected | Actions | Refresh (right) */}
+      <Toolbar className={`${classes.messageListToolbar} ${classes.messageListToolbarSecondRow}`}
+        start={() => {
           const hasSearchText = globalFilterValue && String(globalFilterValue).trim().length > 0;
           return (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
-              {hasSearchText && (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {/* Search */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', position: 'relative' }}>
+                <IconField iconPosition="left">
+                  <InputIcon className="pi pi-search" />
+                  <InputText 
+                    value={globalFilterValue || ''} 
+                    onChange={onFilterChange} 
+                    placeholder="Message Search" 
+                  />
+                </IconField>
                 <Button
                   icon="pi pi-times"
                   severity="secondary"
@@ -433,6 +446,7 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
                     e.stopPropagation();
                     onFilterChange({ target: { value: '' } });
                   }}
+                  disabled={!hasSearchText}
                   tooltip="Clear search"
                   tooltipOptions={{ position: 'bottom' }}
                   style={{ 
@@ -443,63 +457,48 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
                     flexShrink: 0
                   }}
                 />
+              </div>
+              
+              {/* Sort Order */}
+              <label>Sort By</label>
+              <Dropdown 
+                value={browseMode} 
+                onChange={handleBrowseModeChange} 
+                options={browseModes} 
+                optionLabel="name" 
+                disabled={partitioned}
+              />
+              
+              {/* Sort Order Additional Input (Date range / Message ID) */}
+              {isReplayBasedMode(browseMode) && (
+                (browseMode === BROWSE_MODE.HEAD) ?
+                null :
+                (browseMode === BROWSE_MODE.TAIL) ?
+                  null :
+                  (browseMode === BROWSE_MODE.MSGID) ?
+                    <InputText 
+                      placeholder="ID or RGMID" 
+                      value={msgId} 
+                      onChange={handleMsgIdTextChange} 
+                      disabled={partitioned}
+                    /> :
+                    (browseMode === BROWSE_MODE.TIME) ?
+                      <Calendar 
+                        placeholder="Beginning of log" 
+                        visible={calendarVisible} 
+                        value={dateTime} 
+                        showTime
+                        onVisibleChange={handleCalendarVisibleChangle} 
+                        onChange={handleCalendarChange} 
+                        minDate={minDate} 
+                        maxDate={maxDate}
+                        disabled={partitioned}
+                      /> :
+                      null
               )}
-              <IconField iconPosition="left">
-                <InputIcon className="pi pi-search" />
-                <InputText 
-                  value={globalFilterValue || ''} 
-                  onChange={onFilterChange} 
-                  placeholder="Message Search" 
-                />
-              </IconField>
             </div>
           );
         }}
-      />
-      
-      {/* Row 2: Sort Order | Sort Order Additional Input (left) | N selected | Actions | Refresh (right) */}
-      <Toolbar className={`${classes.messageListToolbar} ${classes.messageListToolbarSecondRow}`}
-        start={() => (
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            {/* Sort Order */}
-            <label>Sort Order:</label>
-            <Dropdown 
-              value={browseMode} 
-              onChange={handleBrowseModeChange} 
-              options={browseModes} 
-              optionLabel="name" 
-              disabled={partitioned}
-            />
-            
-            {/* Sort Order Additional Input (Date range / Message ID) */}
-            {isReplayBasedMode(browseMode) && (
-              (browseMode === BROWSE_MODE.HEAD) ?
-              null :
-              (browseMode === BROWSE_MODE.TAIL) ?
-                null :
-                (browseMode === BROWSE_MODE.MSGID) ?
-                  <InputText 
-                    placeholder="ID or RGMID" 
-                    value={msgId} 
-                    onChange={handleMsgIdTextChange} 
-                    disabled={partitioned}
-                  /> :
-                  (browseMode === BROWSE_MODE.TIME) ?
-                    <Calendar 
-                      placeholder="Beginning of log" 
-                      visible={calendarVisible} 
-                      value={dateTime} 
-                      showTime
-                      onVisibleChange={handleCalendarVisibleChangle} 
-                      onChange={handleCalendarChange} 
-                      minDate={minDate} 
-                      maxDate={maxDate}
-                      disabled={partitioned}
-                    /> :
-                    null
-            )}
-          </div>
-        )}
         end={() => (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             {/* N selected */}

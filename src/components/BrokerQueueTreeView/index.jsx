@@ -556,7 +556,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
             </div>
             {brokers.length > 0 && (
               <div style={{ padding: '0.5rem 1rem', borderBottom: '1px solid rgba(255, 255, 255, 0.12)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <label htmlFor="groupBy" style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Group by:</label>
+                <label htmlFor="groupBy" style={{ fontSize: '0.875rem', whiteSpace: 'nowrap' }}>Group By</label>
                 <Dropdown
                   id="groupBy"
                   value={groupBy}

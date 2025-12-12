@@ -1,218 +1,104 @@
 import classes from './styles.module.css';
 
-const WELCOME_CONTENT = `# 🚀 Solace Queue Browser Web
+const WELCOME_CONTENT = `# 🔍 SolQBrowser/Web
 
-**A web tool for browsing, inspecting and managing messages on Solace PubSub+ Event Brokers.**
+**A tool for browsing, inspecting, and managing messages on Solace PubSub+ Event Brokers.**
 
----
-
-## 📋 Overview
-
-The **SolaceQueueBrowserWeb** is a web-based utility designed to help developers and operators inspect, analyze, and debug messages stored on Solace PubSub+ message broker queues. Whether you're troubleshooting message flow issues, verifying message content, or analyzing queue behavior, this tool provides an intuitive interface for bidirectional queue browsing with powerful filtering and inspection capabilities.
-
-The tool supports all Solace broker deployment types including Solace Cloud, Solace Appliances, Software Brokers, and AEM brokers, ensuring you can work with your infrastructure regardless of how it's deployed.
+SolQBrowser/Web is a cross-platform utility that runs as a **desktop application** (Windows, Mac, Linux), **fully in-browser**, or as a **Docker container**. It provides comprehensive queue browsing capabilities, message inspection, and bulk operations for managing messages on Solace brokers.
 
 ---
 
 ## ✨ Key Features
 
-### 🌐 Cross-Platform Broker Support
+### 🌐 Universal Broker Support
 
-Connect to any Solace PubSub+ broker deployment:
+Connect to any Solace PubSub+ broker deployment type:
 
-- **☁️ Solace Cloud Brokers** - Connect to managed Solace Cloud instances
-- **🏢 Solace Appliances** - Support for hardware appliance deployments
-- **💻 Software Brokers** - Connect to self-hosted software broker instances
-- **🔧 AEM Brokers** - Support for Adobe Experience Manager (AEM) broker configurations
+- **☁️ Solace Cloud** - Managed cloud instances
+- **🏢 Solace Appliances** - Hardware appliance deployments  
+- **💻 Software Brokers** - Self-hosted broker instances
+- **🔧 AEM Brokers** - Adobe Experience Manager configurations
 
-The tool works seamlessly across all Solace broker deployment types, providing a consistent experience regardless of your infrastructure.
+### 📊 Advanced Queue Browsing
 
-### 📝 Message Browsing
+**Message Browsing**:
+- ➡️ Forward-only queue browsing with pagination
+- 🔍 Client-side filtering (payload, headers, user properties)
+- 📄 Message content inspection and formatting
+- ✅ Works with any queue configuration
 
-Comprehensive message viewing with multiple panels:
+**Advanced Browsing** (Requires replay logs):
+- ⬅️➡️ Bidirectional navigation (forward and backward)
+- 📌 Start from **oldest message** (queue head)
+- 📌 Start from **newest message** (queue tail)
+- 🕐 Jump to specific **date/time**
+- 🔢 Navigate to specific **message by ID** (RGMID or Message ID)
 
-- **📄 Payload View** - View message body in formatted JSON, text, or raw format
-- **📋 Headers View** - Inspect all message headers and properties
-- **🏷️ User Properties** - View custom user-defined properties
-- **ℹ️ Metadata** - Access message metadata including timestamps, IDs, and delivery info
+### 🔍 Message Inspection & Analysis
 
-### 🔍 Filtering & Search
+Multi-panel message viewing with comprehensive details:
 
-- **Client-side Payload Filtering** - Filter messages by content anywhere in the message - payload or headers including user properties.
+- **📄 Payload View** - JSON formatting, text view, raw binary with syntax highlighting
+- **📋 Headers View** - All message headers and properties
+- **🏷️ User Properties** - Custom key-value properties in searchable format
+- **ℹ️ Metadata** - Message IDs, timestamps, sequence numbers, delivery info
 
-### 📤 Message Operations
+### 🔄 Bulk Message Operations
 
-Manage messages across queues with powerful operations:
+Manage messages across queues with powerful batch operations:
 
-- **📋 Copy Messages** - Copy messages from one queue to another while keeping the original message in the source queue
-- **➡️ Move Messages** - Move messages from one queue to another by copying to destination and deleting from source
-- **🗑️ Delete Messages** - Delete messages directly from queues
+- **📋 Copy Messages** - Copy selected messages to another queue (source preserved)
+- **➡️ Move Messages** - Move messages between queues (copy + delete)
+- **🗑️ Delete Messages** - Bulk delete with progress tracking
+- **⏱️ Progress Monitoring** - Real-time progress bars and operation status
+- **📊 Results Summary** - Detailed success/failure reports
 
-### 🔄 Ordering
+### 🔎 Search & Filtering
 
-- **📌 FIFO** - Browse messages in the spooled order. This is the default sort order and fully supported.
-
-> 💡 Note: Pagination is supported with default sort order, but backward navigation between pages is not supported.
-
-### Bi-directions using Solace's replay log functionality:
-
-- **📌 From Queue Head** - Start from the oldest message
-- **📌 From Queue Tail** - Start from the newest message  
-- **📌 From Date/Time** - Jump to a specific timestamp
-- **📌 From Message ID** - Navigate to a specific message by RGMID or Message ID
-
-> 💡 Note: Bi-directional navigation between pages is experimental and require replay to be enabled on your Solace broker
-
-
----
-
-## 📖 How to Use
-
-### Connect to a Broker
-
-<!-- SCREENSHOT: Add screenshot of broker connection dialog -->
-<!-- ![Broker Connection](docs/screenshots/broker-connection.png) -->
-
-Click the **➕ Add Broker** button in the left panel and enter your broker connection details:
-- **Broker URL** - Your Solace broker endpoint
-- **VPN Name** - Message VPN name
-- **SEMP Credentials** - Username and password for SEMP API
-- **Messaging Credentials** - Username and password for messaging API
-
-### Browse a Queue
-
-<!-- SCREENSHOT: Add screenshot of queue tree view -->
-<!-- ![Queue Tree View](docs/screenshots/queue-tree.png) -->
-
-Expand your broker connection in the left panel, navigate to the **Queues** section, and select a queue. Choose your browse mode:
-- **Default** - Forward-only browsing (no replay required)
-- **From Head** - Start from oldest message
-- **From Tail** - Start from newest message
-- **From Time** - Jump to specific timestamp
-- **From Message ID** - Navigate to specific message
-
-### Navigate Messages
-
-<!-- SCREENSHOT: Add screenshot of message list with navigation controls -->
-<!-- ![Message Navigation](docs/screenshots/message-navigation.png) -->
-
-Use the navigation controls to move through messages:
-- **⬅️ Previous Page** - Navigate to older messages
-- **➡️ Next Page** - Navigate to newer messages
-- **🔍 Filter** - Apply filters to narrow down messages
-- **📊 View Details** - Click a message to view full details in right panels
-
-### Inspect Message Details
-
-<!-- SCREENSHOT: Add screenshot of message detail panels -->
-<!-- ![Message Details](docs/screenshots/message-details.png) -->
-
-When you select a message, four detail panels appear:
-
-1. **Payload Panel** - Message body content with JSON formatting, text view, raw binary view, and syntax highlighting
-
-2. **Headers Panel** - Standard message headers including destination, delivery mode, priority, expiration, and more
-
-3. **User Properties Panel** - Custom properties displayed as key-value pairs in a searchable format
-
-4. **Metadata Panel** - Message metadata including Message ID / RGMID, timestamps, sequence numbers, and delivery information
-
-### Copy, Move, or Delete Messages
-
-<!-- SCREENSHOT: Add screenshot of message operations (copy/move/delete buttons) -->
-<!-- ![Message Operations](docs/screenshots/message-operations.png) -->
-
-Select a message in the message list and use the action buttons to:
-
-- **📋 Copy Message** - Click the copy button to copy the message to another queue. A dialog will appear to select the destination queue. The original message remains in the source queue.
-
-- **➡️ Move Message** - Click the move button to move the message to another queue. You'll be asked to confirm the operation, then select the destination queue. The message will be copied to the destination and deleted from the source queue.
-
-- **🗑️ Delete Message** - Click the delete button to permanently remove the message from the current queue. You'll be asked to confirm before deletion.
-
-> ⚠️ **Note:** Copy and move operations require the message to have a Replication Group Message ID (RGMID). Messages without RGMID cannot be copied or moved.
+- **🔍 Global Search** - Filter messages by content across payload, headers, and user properties
+- **⚡ Client-side Filtering** - Instant results without server round-trips
+- **📝 Multi-field Search** - Search across all message components simultaneously
 
 ---
 
-## 📸 Screenshots
+## 🎯 Use Cases
 
-### Main Interface
-
-<!-- SCREENSHOT: Add full application screenshot showing all panels -->
-<!-- ![Main Interface](docs/screenshots/main-interface.png) -->
-
-*The main interface showing broker tree, message list, and detail panels*
-
-### Queue Browsing
-
-<!-- SCREENSHOT: Add screenshot of queue browsing with different modes -->
-<!-- ![Queue Browsing](docs/screenshots/queue-browsing.png) -->
-
-*Browsing a queue with multiple browse modes available*
-
-### Message Filtering
-
-<!-- SCREENSHOT: Add screenshot of filtering interface -->
-<!-- ![Message Filtering](docs/screenshots/message-filtering.png) -->
-
-*Filtering messages by payload content or headers*
-
-### JSON Payload View
-
-<!-- SCREENSHOT: Add screenshot of formatted JSON payload -->
-<!-- ![JSON Payload](docs/screenshots/json-payload.png) -->
-
-*Formatted JSON payload with syntax highlighting*
-
-### Message Headers
-
-<!-- SCREENSHOT: Add screenshot of headers panel -->
-<!-- ![Message Headers](docs/screenshots/message-headers.png) -->
-
-*Detailed view of message headers and properties*
-
-### Message Operations
-
-<!-- SCREENSHOT: Add screenshot showing copy/move/delete operations -->
-<!-- ![Message Operations](docs/screenshots/message-operations.png) -->
-
-*Copy, move, or delete messages with queue selection dialog*
+- 🔧 **Troubleshooting** - Inspect queue contents and message flow
+- 🐛 **Debugging** - Analyze message payloads and headers
+- 📊 **Analysis** - Review message patterns and content
+- 🔄 **Migration** - Copy or move messages between queues
+- 🧹 **Cleanup** - Bulk delete unwanted messages
+- ✅ **Verification** - Confirm message content and structure
 
 ---
 
-## ⚠️ Important Notes
+## ⚠️ Important Requirements
 
-### Replay Log Requirements
+### Replay Log Support
 
-> ⚠️ **IMPORTANT:** Most advanced features require replay to be enabled on your Solace broker.
+> **📌 Basic Browsing** works with **any queue** - replay logs are NOT required.
 
-The tool assumes:
-- All messages on a queue are present in the Replay Log
-- Replay log has not been trimmed while messages remain on the queue
-- Replay filtering doesn't create mixed replayable/non-replayable message sets
+**Advanced features require replay logs enabled:**
+- Bidirectional browsing (head/tail navigation)
+- Time-based browsing
+- Message ID navigation
 
-### Browser Mode Requirements
+**⚠️ Constraints:** Advanced features assume all queue messages are present in the Replay Log. Unexpected behavior may occur if:
+- Replay log has been trimmed while messages remain on queue
+- Replay filtering creates mixed replayable/non-replayable message sets
+- Messages were acknowledged out-of-order
 
-When running in browser mode:
-- **CORS Configuration** - Broker SEMP service must allow cross-origin requests
-- **TLS Matching** - Browser and broker TLS configuration must match
-  - HTTP site → HTTP broker
-  - HTTPS site → HTTPS broker
+### Connection Setup
 
-### Known Behaviors
-
-- Messages acknowledged out-of-order may still appear in the queue view
-- Binary payloads may not be fully retrievable in some scenarios
-
----
-
-## 🔮 Planned Features
-
+1. **➕ Add Broker** - Click to configure broker connection
+2. **🔐 Enter Credentials**:
+   - Broker URL
+   - VPN Name
+   - SEMP API credentials
+   - Messaging API credentials
+3. **✅ Connect** - Select a queue from the tree view and start browsing
 
 ---
-
-## 📚 Additional Resources
-
 `;
 
 function MarkdownRenderer({ content }) {
