@@ -56,6 +56,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   const [abortOnError, setAbortOnError] = useState(false);
   const [suppressAutoLoad, setSuppressAutoLoad] = useState(false); // Flag to suppress automatic message loading
   const [pageSize, setPageSize] = useState(100);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const loadMessages = async (loader) => {
     setIsLoading(true);
@@ -132,6 +133,8 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     if (browser.pageSize) {
       setPageSize(browser.pageSize);
     }
+    // Reset to first page when browser changes
+    setCurrentPage(1);
     // Only load messages if not suppressed (for partitioned queues)
     if (!suppressAutoLoad) {
       loadMessages(() => browser.getFirstPage());
@@ -201,14 +204,17 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   }, []);
 
   const handleFirstClick = () => {
+    setCurrentPage(1);
     loadMessages(() => browser.getFirstPage());
   };
 
   const handleNextClick = () => {
+    setCurrentPage(prev => prev + 1);
     loadMessages(() => browser.getNextPage());
   };
 
   const handlePrevClick = () => {
+    setCurrentPage(prev => Math.max(1, prev - 1));
     loadMessages(() => browser.getPrevPage());
   };
 
@@ -224,7 +230,8 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     const newPageSize = e.value;
     setPageSize(newPageSize);
     browser.pageSize = newPageSize;
-    // Reload current page with new page size
+    // Reload first page with new page size
+    setCurrentPage(1);
     loadMessages(() => browser.getFirstPage());
   };
 
@@ -272,6 +279,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
       // Refresh the current page to reflect the deletion
       // Reload the first page to ensure we see the updated message list
+      setCurrentPage(1);
       await loadMessages(() => browser.getFirstPage());
 
       // Refresh queue summary to reflect new message count
@@ -383,6 +391,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
         if (!msgId) {
           showErrorToast(toast, 'Message ID is missing. Message was copied but not deleted from source.', 'Move');
           setIsLoading(false);
+          setCurrentPage(1);
           await loadMessages(() => browser.getFirstPage());
           return;
         }
@@ -401,6 +410,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
             7000
           );
           setIsLoading(false);
+          setCurrentPage(1);
           await loadMessages(() => browser.getFirstPage());
           // Refresh queue summary even on partial success (message count may have changed)
           toolbarRef.current?.refreshQueueDetails?.();
@@ -413,6 +423,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       showSuccessToast(toast, `Message ${msgIdDisplay} ${operationText} to ${destQueueName} successfully.`);
 
       // Refresh the message list
+      setCurrentPage(1);
       await loadMessages(() => browser.getFirstPage());
 
       // Refresh queue summary to reflect new message count (only for move operations)
@@ -486,10 +497,26 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
   const ListHeader = () => null;
 
   const ListFooter = () => {
+    // Get total message count from toolbar
+    const totalMessages = toolbarRef.current?.messageCount ?? null;
+    
+    // Calculate total pages (N) using pageSize and total messages
+    const totalPages = totalMessages !== null && totalMessages > 0 
+      ? Math.ceil(totalMessages / pageSize) 
+      : null;
+    
+    // Format page indicator: "Page n of N" or just "Page n" if N is unknown
+    const pageIndicator = totalPages !== null 
+      ? `Page ${currentPage} of ${totalPages}`
+      : `Page ${currentPage}`;
+
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         <Button text onClick={handleFirstClick}>&lt;&lt; First</Button>
         <Button text onClick={handlePrevClick} disabled={!browser.hasPrevPage()}>&lt; Prev</Button>
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-color-secondary)', margin: '0 0.25rem' }}>
+          {pageIndicator}
+        </span>
         <Dropdown
           value={pageSize}
           onChange={handlePageSizeChange}
@@ -498,7 +525,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
           optionValue="value"
           style={{ minWidth: '5rem' }}
         />
-        <Button text onClick={handleNextClick} disabled={!browser.hasNextPage()}>Next &gt;</Button>
+        <Button text onClick={handleNextClick} disabled={!browser.hasNextPage()}>Next &gt;&gt;</Button>
       </div>
     );
   };
@@ -607,6 +634,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       setShowResultDialog(true);
       
       // Refresh message list
+      setCurrentPage(1);
       await loadMessages(() => browser.getFirstPage());
       
       // Refresh queue summary to reflect new message count
@@ -659,6 +687,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       setPendingBulkOperation(null);
       
       // Refresh message list
+      setCurrentPage(1);
       await loadMessages(() => browser.getFirstPage());
       
       // Preserve selection (messages remain in source)
@@ -708,6 +737,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       setPendingBulkOperation(null);
       
       // Refresh message list
+      setCurrentPage(1);
       await loadMessages(() => browser.getFirstPage());
       
       // Refresh queue summary to reflect new message count

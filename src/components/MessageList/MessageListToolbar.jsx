@@ -89,9 +89,10 @@ const MessageListToolbar = forwardRef(function MessageListToolbar({
     }
   };
 
-  // Expose refresh function to parent component
+  // Expose refresh function and messageCount to parent component
   useImperativeHandle(ref, () => ({
-    refreshQueueDetails: fetchQueueDetails
+    refreshQueueDetails: fetchQueueDetails,
+    messageCount: messageCount
   }));
 
   const [sourceLabel, browseModes] =
