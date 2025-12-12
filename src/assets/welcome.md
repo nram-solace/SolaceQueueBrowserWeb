@@ -18,10 +18,10 @@ The tool supports all Solace broker deployment types including Solace Cloud, Sol
 
 Connect to any Solace PubSub+ broker deployment:
 
-- **☁️ Solace Cloud Brokers** - Connect to managed Solace Cloud instances
-- **🏢 Solace Appliances** - Support for hardware appliance deployments
-- **💻 Software Brokers** - Connect to self-hosted software broker instances
-- **🔧 AEM Brokers** - Support for Adobe Experience Manager (AEM) broker configurations
+- **☁️ Solace Cloud** - Managed cloud instances
+- **🔧 AEM Brokers** - SAP Advanced Event Mesh deployments
+- **💻 Software Brokers** - Self-hosted broker instances
+- **🏢 Solace Appliances** - Hardware appliance deployments  
 
 The tool works seamlessly across all Solace broker deployment types, providing a consistent experience regardless of your infrastructure.
 

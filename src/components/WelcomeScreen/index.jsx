@@ -15,9 +15,9 @@ SolQBrowser/Web is a cross-platform utility that runs as a **desktop application
 Connect to any Solace PubSub+ broker deployment type:
 
 - **☁️ Solace Cloud** - Managed cloud instances
-- **🏢 Solace Appliances** - Hardware appliance deployments  
+- **🔧 AEM Brokers** - SAP Advanced Event Mesh deployments
 - **💻 Software Brokers** - Self-hosted broker instances
-- **🔧 AEM Brokers** - Adobe Experience Manager configurations
+- **🏢 Solace Appliances** - Hardware appliance deployments  
 
 ### 📊 Advanced Queue Browsing
 
