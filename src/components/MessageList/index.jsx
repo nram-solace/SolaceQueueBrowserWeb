@@ -59,6 +59,7 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
 
   const loadMessages = async (loader) => {
     setIsLoading(true);
+    // Keep previous messages visible during load for smooth transition
     try {
       const loadedMessages = await loader();
       setMessages(loadedMessages);
@@ -125,8 +126,8 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
       console.warn('Error getting replay time range:', err);
       setReplayLogTimeRange({ min: null, max: null });
     });
-    setMessages([]);
-    setSelectedMessages([]); // Clear selection when browser changes
+    // Clear selection when browser changes, but keep messages visible for smooth transition
+    setSelectedMessages([]);
     // Initialize page size from browser
     if (browser.pageSize) {
       setPageSize(browser.pageSize);
@@ -134,6 +135,9 @@ export default function MessageList({ sourceDefinition, browser, selectedMessage
     // Only load messages if not suppressed (for partitioned queues)
     if (!suppressAutoLoad) {
       loadMessages(() => browser.getFirstPage());
+    } else {
+      // If auto-load is suppressed, clear messages now (for partitioned queues)
+      setMessages([]);
     }
   }, [browser, suppressAutoLoad]);
 
