@@ -25,16 +25,18 @@ Connect to any Solace PubSub+ broker deployment type:
 
 **Message Browsing**:
 - ➡️ Forward-only queue browsing with pagination
+- 📄 **Page Navigation** - "Page n of N" indicator shows current position in paginated lists
 - 🔍 Client-side filtering (payload, headers, user properties)
 - 📄 Message content inspection and formatting
 - ✅ Works with any queue configuration
 
-**Advanced Browsing** (Requires replay logs):
+**Advanced Browsing** (Requires replay logs, can be enabled in Settings):
 - ⬅️➡️ Bidirectional navigation (forward and backward)
 - 📌 Start from **oldest message** (queue head)
 - 📌 Start from **newest message** (queue tail)
 - 🕐 Jump to specific **date/time**
 - 🔢 Navigate to specific **message by ID** (RGMID or Message ID)
+- ⚙️ **Optional Feature** - Advanced browsing modes are disabled by default and can be enabled via Settings (⚙️ icon in left panel)
 
 ### 🔍 Message Inspection & Analysis
 
@@ -60,6 +62,13 @@ Manage messages across queues with powerful batch operations:
 - **🔍 Global Search** - Filter messages by content across payload, headers, and user properties
 - **⚡ Client-side Filtering** - Instant results without server round-trips
 - **📝 Multi-field Search** - Search across all message components simultaneously
+- **❌ Clear Search** - Quick reset button to clear search filters
+
+### ⚙️ Settings & Customization
+
+- **🎛️ Optional Features** - Enable/disable advanced replay features via Settings dialog
+- **💾 Persistent Preferences** - Settings saved to browser storage across sessions
+- **🎨 Theme Support** - Light and dark theme options
 
 ---
 
@@ -80,10 +89,12 @@ Manage messages across queues with powerful batch operations:
 
 > **📌 Basic Browsing** works with **any queue** - replay logs are NOT required.
 
-**Advanced features require replay logs enabled:**
+**Advanced features require replay logs enabled** (can be enabled in Settings):
 - Bidirectional browsing (head/tail navigation)
 - Time-based browsing
 - Message ID navigation
+
+> **💡 Tip:** Advanced replay features are disabled by default. Enable them via the Settings icon (⚙️) in the left panel toolbar if you need bidirectional browsing or time-based navigation.
 
 **⚠️ Constraints:** Advanced features assume all queue messages are present in the Replay Log. Unexpected behavior may occur if:
 - Replay log has been trimmed while messages remain on queue
