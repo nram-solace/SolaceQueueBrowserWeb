@@ -597,16 +597,6 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 aria-label="Restore Session"
               />
               <Button 
-                icon="pi pi-refresh" 
-                text 
-                size="small"
-                onClick={handleRefreshClick} 
-                tooltip="Refresh Queues"
-                tooltipOptions={{ position: 'bottom' }}
-                aria-label="Refresh Queues"
-                disabled={!selectedBroker}
-              />
-              <Button 
                 icon="pi pi-pencil" 
                 text 
                 size="small"
@@ -680,6 +670,17 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
             )}
             {showQueueSearch && (
               <div className={classes.queueSearchContainer}>
+                <Button 
+                  icon="pi pi-refresh" 
+                  text 
+                  size="small"
+                  onClick={handleRefreshClick} 
+                  tooltip="Refresh Queues"
+                  tooltipOptions={{ position: 'bottom' }}
+                  aria-label="Refresh Queues"
+                  disabled={!selectedBroker}
+                  className={classes.queueRefreshButton}
+                />
                 <InputText
                   value={queueSearchTerm}
                   onChange={(e) => setQueueSearchTerm(e.target.value)}

@@ -121,6 +121,10 @@
   flex-shrink: 0;
 }
 
+.queueRefreshButton {
+  flex-shrink: 0;
+}
+
 .queueListContainer {
   flex: 1;
   overflow-y: auto;
