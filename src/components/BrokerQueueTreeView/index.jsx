@@ -6,7 +6,6 @@ import { InputText } from 'primereact/inputtext';
 import { Dialog } from 'primereact/dialog';
 import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Dropdown } from 'primereact/dropdown';
-import { PrimeIcons } from 'primereact/api';
 
 import { Tree } from 'primereact/tree';
 
@@ -44,30 +43,6 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [groupBy, setGroupBy] = useState(null); // null, 'environment', 'region', or 'type'
 
   const sempApi = useSempApi();
-
-  // Theme toggle state and logic
-  const getInitialTheme = () => {
-    const darkTheme = window.document.getElementById('theme-dark');
-    return darkTheme?.rel === 'stylesheet' ? 'dark' : 'light';
-  };
-
-  const [colorScheme, setColorScheme] = useState(() => getInitialTheme());
-
-  const isColorSchemeDark = () => colorScheme === 'dark';
-
-  const toggleTheme = () => {
-    setColorScheme(prev => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      window.document.getElementById(`theme-${prev}`).rel = 'prefetch';
-      window.document.getElementById(`theme-${next}`).rel = 'stylesheet';
-      const contentFrame = window.document.querySelector('iframe');
-      if(contentFrame) {
-        contentFrame.contentDocument.getElementById(`theme-${prev}`).rel = 'prefetch';
-        contentFrame.contentDocument.getElementById(`theme-${next}`).rel = 'stylesheet';
-      }
-      return next;
-    });
-  };
 
   const getBrokerIcon = (testResult) => (
     testResult ? (
@@ -572,15 +547,6 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                 tooltipOptions={{ position: 'bottom' }}
                 aria-label="Edit Broker"
                 disabled={!selectedBroker}
-              />
-              <Button 
-                icon={isColorSchemeDark() ? PrimeIcons.SUN : PrimeIcons.MOON} 
-                text 
-                size="small"
-                onClick={toggleTheme} 
-                tooltip={isColorSchemeDark() ? "Switch to Light Theme" : "Switch to Dark Theme"}
-                tooltipOptions={{ position: 'bottom' }}
-                aria-label="Toggle Theme"
               />
               <Button 
                 icon="pi pi-cog" 

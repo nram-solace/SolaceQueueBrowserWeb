@@ -1,10 +1,12 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { DEFAULT_THEME, applyTheme } from '../config/themes';
 
 const SettingsContext = createContext(undefined);
 
 const SETTINGS_KEY = 'appSettings';
 const DEFAULT_SETTINGS = {
-  replayFeaturesEnabled: false
+  replayFeaturesEnabled: false,
+  selectedTheme: DEFAULT_THEME
 };
 
 function loadSettings() {
@@ -30,6 +32,11 @@ function saveSettings(settings) {
 
 export function SettingsProvider({ children }) {
   const [settings, setSettings] = useState(() => loadSettings());
+
+  // Apply theme on initial load
+  useEffect(() => {
+    applyTheme(settings.selectedTheme || DEFAULT_THEME);
+  }, []);
 
   useEffect(() => {
     saveSettings(settings);
@@ -57,4 +64,3 @@ export function useSettings() {
   }
   return context;
 }
-

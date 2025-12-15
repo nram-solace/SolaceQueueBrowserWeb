@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40" fill="none">
+  <!-- Teal Theme Logo - Dark version for light backgrounds -->
+  <circle cx="16" cy="20" r="12" fill="#00A87D"/>
+  <circle cx="36" cy="20" r="12" fill="#00A87D" opacity="0.7"/>
+  <circle cx="56" cy="20" r="12" fill="#00A87D" opacity="0.4"/>
+</svg>

@@ -1,4 +1,5 @@
 import classes from './styles.module.css';
+import BrandLogo from '../BrandLogo';
 
 const WELCOME_CONTENT = `# 🔍 SolQBrowser/Web
 
@@ -84,7 +85,7 @@ Manage messages across queues with powerful batch operations:
 
 - **🎛️ Optional Features** - Enable/disable advanced replay features via Settings dialog
 - **💾 Persistent Preferences** - Settings saved to browser storage across sessions
-- **🎨 Theme Support** - Light and dark theme options
+- **🎨 Theme Support** - Multiple brand themes with light and dark variants (configure in Settings)
 
 ### 🌐 Deployment Options
 
@@ -321,6 +322,9 @@ export default function WelcomeScreen() {
   return (
     <div className={classes.welcomeContainer}>
       <div className={classes.welcomeContent}>
+        <div className={classes.logoHeader}>
+          <BrandLogo size="large" variant="auto" />
+        </div>
         <MarkdownRenderer content={WELCOME_CONTENT} />
       </div>
     </div>

@@ -1,0 +1,60 @@
+.selectorContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.label {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.dropdown {
+  min-width: 180px;
+}
+
+.dropdownPanel {
+  min-width: 200px;
+}
+
+.themeOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.colorSwatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1px solid var(--surface-border);
+  flex-shrink: 0;
+}
+
+.themeName {
+  flex: 1;
+  color: var(--text-color);
+}
+
+.themeVariant {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.themeGroup {
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  color: var(--text-color-secondary);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.groupLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+

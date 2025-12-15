@@ -7,18 +7,9 @@ import { PrimeIcons } from 'primereact/api';
 import classes from './styles.module.css';
 import { useEffect, useState } from "react";
 import { APP_TITLE, WINDOW_TITLE } from '../../config/version';
+import BrandLogo from '../BrandLogo';
 
 export default function TitleBar() {
-  // Initialize theme state from HTML - check which theme is currently active
-  const getInitialTheme = () => {
-    const darkTheme = window.document.getElementById('theme-dark');
-    return darkTheme?.rel === 'stylesheet' ? 'dark' : 'light';
-  };
-
-  const [colorScheme, setColorScheme] = useState(() => getInitialTheme());
-
-  const isColorSchemeDark = () => colorScheme === 'dark';
-
   useEffect(() => {
     // Set Tauri window title dynamically
     if (window.top?.__TAURI__) {
@@ -27,25 +18,12 @@ export default function TitleBar() {
     }
   }, []);
 
-  const toggleTheme = () => {
-    setColorScheme(prev => {
-      const next = prev === 'dark' ? 'light' : 'dark';
-      window.document.getElementById(`theme-${prev}`).rel = 'prefetch';
-      window.document.getElementById(`theme-${next}`).rel = 'stylesheet';
-      const contentFrame = window.document.querySelector('iframe');
-      if(contentFrame) {
-        contentFrame.contentDocument.getElementById(`theme-${prev}`).rel = 'prefetch';
-        contentFrame.contentDocument.getElementById(`theme-${next}`).rel = 'stylesheet';
-      }
-      return next;
-    });
-  };
-
   const AppTitle = () => {
     return (
-      <>
-        <span style={{ paddingLeft: '1em' }}>{APP_TITLE}</span>
-      </>
+      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '0.5em' }}>
+        <BrandLogo size="small" variant="auto" />
+        <span style={{ paddingLeft: '0.5em' }}>{APP_TITLE}</span>
+      </div>
     )
   }
 
@@ -80,7 +58,6 @@ export default function TitleBar() {
 
     return (
       <>
-        <Button text icon={isColorSchemeDark() ? PrimeIcons.SUN : PrimeIcons.MOON} onClick={toggleTheme} />
         <Button text icon={PrimeIcons.MINUS} onClick={minimizeWindow} />
         { 
           isMaximized ? 
@@ -95,6 +72,6 @@ export default function TitleBar() {
   return (
     <Toolbar className={classes.toolbar} data-tauri-drag-region
       start={AppTitle}
-      end={window.top.__TAURI__ ? ControlButtons : <Button text icon={isColorSchemeDark() ? PrimeIcons.SUN : PrimeIcons.MOON} onClick={toggleTheme} />} />
+      end={window.top.__TAURI__ ? ControlButtons : null} />
   );
 }
