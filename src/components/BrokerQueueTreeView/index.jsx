@@ -450,6 +450,19 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const selectedBrokerQueues = selectedBroker ? queuesListMap[selectedBroker.id] || [] : [];
   const selectedBrokerTopics = selectedBroker ? topicsListMap[selectedBroker.id] || [] : [];
 
+  // Only show queue search when there are queues/topics to search for
+  const showQueueSearch =
+    !!selectedBroker &&
+    !!selectedBroker.testResult?.connected &&
+    (selectedBrokerQueues.length > 0 || selectedBrokerTopics.length > 0);
+
+  // If the selected broker has no queues/topics, clear any stale search term
+  useEffect(() => {
+    if (!showQueueSearch && queueSearchTerm) {
+      setQueueSearchTerm('');
+    }
+  }, [showQueueSearch, queueSearchTerm]);
+
   // Filter queues and topics based on search term (case-insensitive)
   const filteredQueues = queueSearchTerm
     ? selectedBrokerQueues.filter(queue => 
@@ -606,29 +619,31 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
             <div className={classes.queueListHeader}>
               <strong>Queues{selectedBroker ? ` - ${selectedBroker.displayName}` : ''}</strong>
             </div>
-            <div className={classes.queueSearchContainer}>
-              <InputText
-                value={queueSearchTerm}
-                onChange={(e) => setQueueSearchTerm(e.target.value)}
-                placeholder="Search queues..."
-                className={classes.queueSearchInput}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    handleClearSearch();
-                  }
-                }}
-              />
-              <Button
-                icon={queueSearchTerm ? "pi pi-times" : "pi pi-search"}
-                text
-                size="small"
-                onClick={queueSearchTerm ? handleClearSearch : handleQueueSearch}
-                tooltip={queueSearchTerm ? "Clear search" : "Search"}
-                tooltipOptions={{ position: 'bottom' }}
-                aria-label={queueSearchTerm ? "Clear search" : "Search"}
-                className={classes.queueSearchButton}
-              />
-            </div>
+            {showQueueSearch && (
+              <div className={classes.queueSearchContainer}>
+                <InputText
+                  value={queueSearchTerm}
+                  onChange={(e) => setQueueSearchTerm(e.target.value)}
+                  placeholder="Search queues..."
+                  className={classes.queueSearchInput}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      handleClearSearch();
+                    }
+                  }}
+                />
+                <Button
+                  icon={queueSearchTerm ? "pi pi-times" : "pi pi-search"}
+                  text
+                  size="small"
+                  onClick={queueSearchTerm ? handleClearSearch : handleQueueSearch}
+                  tooltip={queueSearchTerm ? "Clear search" : "Search"}
+                  tooltipOptions={{ position: 'bottom' }}
+                  aria-label={queueSearchTerm ? "Clear search" : "Search"}
+                  className={classes.queueSearchButton}
+                />
+              </div>
+            )}
             <div className={classes.queueListContainer}>
               {selectedBroker ? (
                 selectedBroker.testResult?.connected ? (
