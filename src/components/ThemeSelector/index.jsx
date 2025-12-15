@@ -28,21 +28,19 @@ export default function ThemeSelector({ showLabel = true }) {
     updateSettings({ selectedTheme: newThemeId });
   };
 
-  // Group themes by brand for the dropdown
-  const groupedThemes = themes.reduce((acc, theme) => {
-    const group = acc.find(g => g.label === theme.brandDisplayName);
-    if (group) {
-      group.items.push(theme);
-    } else {
-      acc.push({
-        label: theme.brandDisplayName,
-        items: [theme]
-      });
+  // Group themes by variant (Light/Dark) for the dropdown
+  const groupedThemes = [
+    {
+      label: '☀️ Light',
+      items: themes.filter(t => t.variant === 'light').sort((a, b) => a.brandDisplayName.localeCompare(b.brandDisplayName))
+    },
+    {
+      label: '🌙 Dark',
+      items: themes.filter(t => t.variant === 'dark').sort((a, b) => a.brandDisplayName.localeCompare(b.brandDisplayName))
     }
-    return acc;
-  }, []);
+  ];
 
-  // Template for theme options
+  // Template for theme options - show brand name with color swatch
   const themeOptionTemplate = (option) => {
     if (!option) return null;
     return (
@@ -51,10 +49,7 @@ export default function ThemeSelector({ showLabel = true }) {
           className={classes.colorSwatch} 
           style={{ backgroundColor: option.primary }}
         />
-        <span className={classes.themeName}>{option.name}</span>
-        <span className={classes.themeVariant}>
-          {option.variant === 'dark' ? '🌙' : '☀️'}
-        </span>
+        <span className={classes.themeName}>{option.brandDisplayName}</span>
       </div>
     );
   };
@@ -68,7 +63,10 @@ export default function ThemeSelector({ showLabel = true }) {
           className={classes.colorSwatch} 
           style={{ backgroundColor: option.primary }}
         />
-        <span className={classes.themeName}>{option.name}</span>
+        <span className={classes.themeName}>{option.brandDisplayName}</span>
+        <span className={classes.themeVariant}>
+          {option.variant === 'dark' ? '🌙' : '☀️'}
+        </span>
       </div>
     );
   };
