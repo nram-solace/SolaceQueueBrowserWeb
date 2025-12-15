@@ -6,6 +6,7 @@ import { FloatLabel } from 'primereact/floatlabel';
 import { useSempApi } from '../../providers/SempClientProvider';
 import { Toast } from 'primereact/toast';
 import { useRef } from 'react';
+import { getAllMsgVpnQueues } from '../../utils/solace/semp/paging';
 
 import classes from './styles.module.css';
 
@@ -15,6 +16,7 @@ export default function QueueSelectionDialog({ visible, config, currentQueueName
   const [isLoading, setIsLoading] = useState(false);
   const sempApi = useSempApi();
   const toast = useRef(null);
+  const loadQueuesTokenRef = useRef(0);
 
   useEffect(() => {
     if (visible && config) {
@@ -30,9 +32,11 @@ export default function QueueSelectionDialog({ visible, config, currentQueueName
       return;
     }
 
+    const loadToken = ++loadQueuesTokenRef.current;
     setIsLoading(true);
     try {
-      const { data: queueList } = await sempApi.getClient(config).getMsgVpnQueues(config.vpn, { count: 100 });
+      const sempClient = sempApi.getClient(config);
+      const queueList = await getAllMsgVpnQueues(sempClient, config.vpn, { select: ['queueName'] });
       // Filter out the current queue and system queues (starting with #)
       const filteredQueues = queueList
         .filter(queue => queue.queueName !== currentQueueName && !queue.queueName.startsWith('#'))
@@ -42,7 +46,9 @@ export default function QueueSelectionDialog({ visible, config, currentQueueName
         }))
         .sort((a, b) => a.label.localeCompare(b.label));
       
-      setQueues(filteredQueues);
+      if (loadToken === loadQueuesTokenRef.current) {
+        setQueues(filteredQueues);
+      }
     } catch (err) {
       console.error('Error loading queues:', err);
       const errorDetail = err.response?.body?.meta?.error?.description || 
@@ -54,9 +60,13 @@ export default function QueueSelectionDialog({ visible, config, currentQueueName
         detail: errorDetail,
         life: 5000
       });
-      setQueues([]);
+      if (loadToken === loadQueuesTokenRef.current) {
+        setQueues([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (loadToken === loadQueuesTokenRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 

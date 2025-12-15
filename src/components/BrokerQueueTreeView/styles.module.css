@@ -92,6 +92,17 @@
   background-color: rgba(255, 255, 255, 0.03);
 }
 
+.queueListHeaderTitle {
+  line-height: 1.2;
+}
+
+.queueListHeaderSubtitle {
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  color: var(--text-color-secondary);
+  line-height: 1.1;
+}
+
 .queueSearchContainer {
   display: flex;
   gap: 0.5rem;

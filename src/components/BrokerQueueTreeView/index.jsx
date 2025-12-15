@@ -19,6 +19,7 @@ import SettingsDialog from '../SettingsDialog';
 
 import { TopicIcon, LvqIcon, QueueIcon } from '../../icons';
 import { APP_TITLE } from '../../config/version';
+import { getAllMsgVpnQueues } from '../../utils/solace/semp/paging';
 import PropTypes from 'prop-types';
 
 import classes from './styles.module.css';
@@ -33,6 +34,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [sessionName, setSessionName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const toast = useRef(null);
+  const loadQueuesTokenRef = useRef(0);
 
   const [queuesListMap, setQueuesListMap] = useState({});
   const [topicsListMap, setTopicsListMap] = useState({});
@@ -119,7 +121,10 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     }
 
     try {
-      const { data: queues } = await sempApi.getClient(config).getMsgVpnQueues(config.vpn, { count: 100 });
+      const sempClient = sempApi.getClient(config);
+      // Note: some brokers reject multi-attribute `select` lists (400 INVALID_PARAMETER),
+      // so we intentionally avoid `select` here for maximum compatibility.
+      const queues = await getAllMsgVpnQueues(sempClient, config.vpn);
       const queueNodeList = buildQueueNodeList(config, queues);
       setQueuesListMap(prev => ({ ...prev, [config.id]: queueNodeList }));
       if (showToast) {
@@ -264,6 +269,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     }
 
     if (type === 'broker') {
+      const loadToken = ++loadQueuesTokenRef.current;
       // Reset selected queue and search term when switching brokers
       setSelectedQueueId(null);
       setQueueSearchTerm('');
@@ -282,14 +288,21 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         
         if (result.connected) {
           // Load queues for selected broker
-          const { data: queues } = await sempApi.getClient(config).getMsgVpnQueues(config.vpn, { count: 100 });
+          const sempClient = sempApi.getClient(config);
+          // Note: some brokers reject multi-attribute `select` lists (400 INVALID_PARAMETER),
+          // so we intentionally avoid `select` here for maximum compatibility.
+          const queues = await getAllMsgVpnQueues(sempClient, config.vpn);
           const queueNodeList = buildQueueNodeList(config, queues);
-          setQueuesListMap(prev => ({ ...prev, [config.id]: queueNodeList }));
+          if (loadToken === loadQueuesTokenRef.current) {
+            setQueuesListMap(prev => ({ ...prev, [config.id]: queueNodeList }));
+          }
           
           // Load topics if replay mode
           if (result.replay) {
             const topicNodeList = buildTopicNodeList(config);
-            setTopicsListMap(prev => ({ ...prev, [config.id]: topicNodeList }));
+            if (loadToken === loadQueuesTokenRef.current) {
+              setTopicsListMap(prev => ({ ...prev, [config.id]: topicNodeList }));
+            }
           }
         }
       } catch (err) {
@@ -297,7 +310,9 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         console.error('Broker connection test failed:', err);
         Object.assign(config, { testResult: { connected: false, replay: false } });
       } finally {
-        setIsLoading(false);
+        if (loadToken === loadQueuesTokenRef.current) {
+          setIsLoading(false);
+        }
       }
       return;
     }
@@ -449,6 +464,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   // Get queues and topics for selected broker
   const selectedBrokerQueues = selectedBroker ? queuesListMap[selectedBroker.id] || [] : [];
   const selectedBrokerTopics = selectedBroker ? topicsListMap[selectedBroker.id] || [] : [];
+  const queueCountText = (n) => `${n} queue${n === 1 ? '' : 's'}`;
 
   // Only show queue search when there are queues/topics to search for
   const showQueueSearch =
@@ -616,9 +632,18 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
         {/* Bottom Panel: Queue List */}
         <SplitterPanel size={60} minSize={30} className={classes.splitterPanel}>
           <div className={classes.bottomPanel}>
-            <div className={classes.queueListHeader}>
-              <strong>Queues{selectedBroker ? ` - ${selectedBroker.displayName}` : ''}</strong>
-            </div>
+            {selectedBroker && (
+              <div className={classes.queueListHeader}>
+                <div>
+                  <div className={classes.queueListHeaderTitle}>
+                    <strong>{selectedBroker.displayName}</strong>
+                  </div>
+                  <div className={classes.queueListHeaderSubtitle}>
+                    {queueCountText(selectedBrokerQueues.length)}
+                  </div>
+                </div>
+              </div>
+            )}
             {showQueueSearch && (
               <div className={classes.queueSearchContainer}>
                 <InputText
