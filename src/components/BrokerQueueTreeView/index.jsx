@@ -19,11 +19,36 @@ import SettingsDialog from '../SettingsDialog';
 import { TopicIcon, LvqIcon, QueueIcon } from '../../icons';
 import { APP_TITLE } from '../../config/version';
 import { getAllMsgVpnQueues } from '../../utils/solace/semp/paging';
+import { useSettings } from '../../providers/SettingsProvider';
+import { getTheme, DEFAULT_THEME } from '../../config/themes';
 import PropTypes from 'prop-types';
 
 import classes from './styles.module.css';
 
+// Small brand icon - circle for Teal, diamond for Lime
+function BrandIcon({ theme }) {
+  const primaryColor = theme?.primary || '#00C895';
+  const isLime = theme?.brand === 'lime';
+  
+  if (isLime) {
+    return (
+      <svg width="16" height="16" viewBox="0 0 16 16" style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}>
+        <polygon points="8,1 15,8 8,15 1,8" fill={primaryColor} />
+      </svg>
+    );
+  }
+  
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}>
+      <circle cx="8" cy="8" r="7" fill={primaryColor} />
+    </svg>
+  );
+}
+
 export default function TreeView({ brokers, brokerEditor, sessionManager, onSourceSelected }) {
+  const { settings } = useSettings();
+  const currentTheme = getTheme(settings.selectedTheme || DEFAULT_THEME);
+  
   const [brokerForConfig, setBrokerForConfig] = useState(null);
   const [brokerAndReplayTopic, setBrokerAndReplayTopic] = useState(null);
   const [showSessionManager, setShowSessionManager] = useState(false);
@@ -492,7 +517,10 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
       
       {/* Top Panel: Logo Text */}
       <div className={classes.topPanel}>
-        <div className={classes.logoText}>{APP_TITLE}</div>
+        <div className={classes.logoText}>
+          <BrandIcon theme={currentTheme} />
+          {APP_TITLE}
+        </div>
       </div>
 
       {/* Resizable Splitter for Broker List and Queue List */}
