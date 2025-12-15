@@ -636,7 +636,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
               <div className={classes.queueListHeader}>
                 <div>
                   <div className={classes.queueListHeaderTitle}>
-                    <strong>{selectedBroker.displayName}</strong>
+                    <strong>{formatBrokerLabel(selectedBroker)}</strong>
                   </div>
                   <div className={classes.queueListHeaderSubtitle}>
                     {queueCountText(selectedBrokerQueues.length)}
