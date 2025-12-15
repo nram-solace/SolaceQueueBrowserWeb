@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40" fill="none">
+  <!-- Silver Theme Logo - Dark version for light backgrounds -->
+  <rect x="6" y="10" width="20" height="20" rx="4" fill="#4B5563"/>
+  <rect x="30" y="10" width="20" height="20" rx="4" fill="#4B5563" opacity="0.7"/>
+  <rect x="54" y="10" width="20" height="20" rx="4" fill="#4B5563" opacity="0.4"/>
+</svg>
+

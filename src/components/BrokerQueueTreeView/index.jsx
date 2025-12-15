@@ -25,24 +25,64 @@ import PropTypes from 'prop-types';
 
 import classes from './styles.module.css';
 
-// Small brand icon - circle for Teal, diamond for Lime
+// Small brand icon - different shapes per brand
 function BrandIcon({ theme }) {
   const primaryColor = theme?.primary || '#00C895';
-  const isLime = theme?.brand === 'lime';
+  const brand = theme?.brand || 'teal';
+  const style = { marginRight: '0.5rem', verticalAlign: 'middle' };
   
-  if (isLime) {
-    return (
-      <svg width="16" height="16" viewBox="0 0 16 16" style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}>
-        <polygon points="8,1 15,8 8,15 1,8" fill={primaryColor} />
-      </svg>
-    );
+  switch (brand) {
+    case 'lime':
+      // Diamond
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={style}>
+          <polygon points="8,1 15,8 8,15 1,8" fill={primaryColor} />
+        </svg>
+      );
+    case 'ruby':
+      // Hexagon
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={style}>
+          <polygon points="4,2 12,2 15,8 12,14 4,14 1,8" fill={primaryColor} />
+        </svg>
+      );
+    case 'violet':
+      // Pentagon
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={style}>
+          <polygon points="8,1 15,6 13,14 3,14 1,6" fill={primaryColor} />
+        </svg>
+      );
+    case 'silver':
+      // Rounded square
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={style}>
+          <rect x="2" y="2" width="12" height="12" rx="3" fill={primaryColor} />
+        </svg>
+      );
+    case 'amber':
+      // Triangle
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={style}>
+          <polygon points="8,2 15,14 1,14" fill={primaryColor} />
+        </svg>
+      );
+    case 'sapphire':
+      // Star
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={style}>
+          <polygon points="8,1 9.5,6 15,6 10.5,9.5 12,15 8,11.5 4,15 5.5,9.5 1,6 6.5,6" fill={primaryColor} />
+        </svg>
+      );
+    case 'teal':
+    default:
+      // Circle
+      return (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={style}>
+          <circle cx="8" cy="8" r="7" fill={primaryColor} />
+        </svg>
+      );
   }
-  
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" style={{ marginRight: '0.5rem', verticalAlign: 'middle' }}>
-      <circle cx="8" cy="8" r="7" fill={primaryColor} />
-    </svg>
-  );
 }
 
 export default function TreeView({ brokers, brokerEditor, sessionManager, onSourceSelected }) {

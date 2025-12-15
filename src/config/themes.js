@@ -50,6 +50,131 @@ export const THEME_CONFIG = {
     logoDark: './themes/lime/logo-dark.svg',
     cssPath: './themes/lime-dark/theme.css',
     primary: '#76B900'
+  },
+  // Ruby theme (Red) - for Staples, Halliburton style
+  'ruby-light': {
+    id: 'ruby-light',
+    name: 'Ruby Light',
+    variant: 'light',
+    brand: 'ruby',
+    brandDisplayName: 'Ruby',
+    logo: './themes/ruby/logo.svg',
+    logoLight: './themes/ruby/logo-light.svg',
+    logoDark: './themes/ruby/logo-dark.svg',
+    cssPath: './themes/ruby-light/theme.css',
+    primary: '#CC0000'
+  },
+  'ruby-dark': {
+    id: 'ruby-dark',
+    name: 'Ruby Dark',
+    variant: 'dark',
+    brand: 'ruby',
+    brandDisplayName: 'Ruby',
+    logo: './themes/ruby/logo.svg',
+    logoLight: './themes/ruby/logo-light.svg',
+    logoDark: './themes/ruby/logo-dark.svg',
+    cssPath: './themes/ruby-dark/theme.css',
+    primary: '#CC0000'
+  },
+  // Violet theme (Purple) - for Northern Trust style
+  'violet-light': {
+    id: 'violet-light',
+    name: 'Violet Light',
+    variant: 'light',
+    brand: 'violet',
+    brandDisplayName: 'Violet',
+    logo: './themes/violet/logo.svg',
+    logoLight: './themes/violet/logo-light.svg',
+    logoDark: './themes/violet/logo-dark.svg',
+    cssPath: './themes/violet-light/theme.css',
+    primary: '#5C2D91'
+  },
+  'violet-dark': {
+    id: 'violet-dark',
+    name: 'Violet Dark',
+    variant: 'dark',
+    brand: 'violet',
+    brandDisplayName: 'Violet',
+    logo: './themes/violet/logo.svg',
+    logoLight: './themes/violet/logo-light.svg',
+    logoDark: './themes/violet/logo-dark.svg',
+    cssPath: './themes/violet-dark/theme.css',
+    primary: '#5C2D91'
+  },
+  // Silver theme (Gray) - for Apple style minimalist
+  'silver-light': {
+    id: 'silver-light',
+    name: 'Silver Light',
+    variant: 'light',
+    brand: 'silver',
+    brandDisplayName: 'Silver',
+    logo: './themes/silver/logo.svg',
+    logoLight: './themes/silver/logo-light.svg',
+    logoDark: './themes/silver/logo-dark.svg',
+    cssPath: './themes/silver-light/theme.css',
+    primary: '#6B7280'
+  },
+  'silver-dark': {
+    id: 'silver-dark',
+    name: 'Silver Dark',
+    variant: 'dark',
+    brand: 'silver',
+    brandDisplayName: 'Silver',
+    logo: './themes/silver/logo.svg',
+    logoLight: './themes/silver/logo-light.svg',
+    logoDark: './themes/silver/logo-dark.svg',
+    cssPath: './themes/silver-dark/theme.css',
+    primary: '#6B7280'
+  },
+  // Amber theme (Orange/Gold) - warm accent option
+  'amber-light': {
+    id: 'amber-light',
+    name: 'Amber Light',
+    variant: 'light',
+    brand: 'amber',
+    brandDisplayName: 'Amber',
+    logo: './themes/amber/logo.svg',
+    logoLight: './themes/amber/logo-light.svg',
+    logoDark: './themes/amber/logo-dark.svg',
+    cssPath: './themes/amber-light/theme.css',
+    primary: '#F0AB00'
+  },
+  'amber-dark': {
+    id: 'amber-dark',
+    name: 'Amber Dark',
+    variant: 'dark',
+    brand: 'amber',
+    brandDisplayName: 'Amber',
+    logo: './themes/amber/logo.svg',
+    logoLight: './themes/amber/logo-light.svg',
+    logoDark: './themes/amber/logo-dark.svg',
+    cssPath: './themes/amber-dark/theme.css',
+    primary: '#F0AB00'
+  },
+  // Sapphire theme (Blue) - for SAP style
+  'sapphire-light': {
+    id: 'sapphire-light',
+    name: 'Sapphire Light',
+    variant: 'light',
+    brand: 'sapphire',
+    brandDisplayName: 'Sapphire',
+    logo: './themes/sapphire/logo.svg',
+    logoLight: './themes/sapphire/logo-light.svg',
+    logoDark: './themes/sapphire/logo-dark.svg',
+    cssPath: './themes/sapphire-light/theme.css',
+    primary: '#0070F2'
+  },
+  'sapphire-dark': {
+    id: 'sapphire-dark',
+    name: 'Sapphire Dark',
+    variant: 'dark',
+    brand: 'sapphire',
+    brandDisplayName: 'Sapphire',
+    logo: './themes/sapphire/logo.svg',
+    logoLight: './themes/sapphire/logo-light.svg',
+    logoDark: './themes/sapphire/logo-dark.svg',
+    cssPath: './themes/sapphire-dark/theme.css',
+    primary: '#0070F2'
   }
 };
 
