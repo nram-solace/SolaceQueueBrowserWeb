@@ -1,5 +1,5 @@
 // Version configuration - update this file to change version without code changes
-export const APP_VERSION = '2.4.2';
+export const APP_VERSION = '2.4.4';
 export const APP_NAME = 'SolQBrowser/Web';
 
 export const APP_TITLE = `${APP_NAME}/v${APP_VERSION}`;

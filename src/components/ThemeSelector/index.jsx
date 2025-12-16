@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { Dropdown } from 'primereact/dropdown';
 import { useSettings } from '../../providers/SettingsProvider';
-import { getThemeList, getTheme, DEFAULT_THEME, applyTheme } from '../../config/themes';
+import { getEnabledThemes, getTheme, DEFAULT_THEME, applyTheme } from '../../config/themes';
 import classes from './styles.module.css';
 
 export default function ThemeSelector({ showLabel = true }) {
   const { settings, updateSettings } = useSettings();
-  const themes = getThemeList();
+  const themes = getEnabledThemes();
   const currentTheme = getTheme(settings.selectedTheme || DEFAULT_THEME);
 
   // Apply theme on mount and when theme changes
