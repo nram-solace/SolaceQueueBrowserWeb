@@ -25,6 +25,23 @@
   overflow-x: auto;
 }
 
+/* Match JsonView font and spacing to Formatted view */
+.jsonViewContainer :global(.json-view) {
+  font-size: small;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  font-family: monospace;
+  line-height: 1.5;
+}
+
+/* Ensure all JsonView text elements use the same font family and size */
+.jsonViewContainer :global(.json-view span),
+.jsonViewContainer :global(.json-view div) {
+  font-family: monospace;
+  font-size: small;
+}
+
 .xmlDeclaration {
   color: #7f848e;
   font-style: italic;
