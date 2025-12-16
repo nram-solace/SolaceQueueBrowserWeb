@@ -24,3 +24,32 @@
   overflow-y: auto;
   overflow-x: auto;
 }
+
+.xmlDeclaration {
+  color: #7f848e;
+  font-style: italic;
+}
+
+.xmlBracket {
+  color: #abb2bf;
+}
+
+.xmlTagName {
+  font-weight: 600;
+}
+
+.xmlAttributes {
+  color: #abb2bf;
+}
+
+.xmlAttrName {
+  color: #e06c75;
+}
+
+.xmlAttrValue {
+  color: #98c379;
+}
+
+.xmlText {
+  color: #abb2bf;
+}
