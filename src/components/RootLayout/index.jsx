@@ -4,9 +4,10 @@ import { Splitter, SplitterPanel } from 'primereact/splitter';
 import { Panel } from 'primereact/panel';
 import classes from './styles.module.css';
 
-function BasePanel({ header, children }) {
+function BasePanel({ header, headerTemplate, children }) {
   return <Panel 
     header={header}
+    headerTemplate={headerTemplate}
     pt={{ 
       root: { className: classes.panelRoot },
       header: { className: classes.panelHeader },

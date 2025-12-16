@@ -25,6 +25,7 @@ export default function App() {
   const [selectedSource, setSelectedSource] = useState({});
   const [selectedMessage, setSelectedMessage] = useState({});
   const [hasEverSelectedSource, setHasEverSelectedSource] = useState(false);
+  const [payloadHeaderTemplate, setPayloadHeaderTemplate] = useState(null);
 
   const [browser, updateBrowser] = useQueueBrowsing();
 
@@ -75,8 +76,11 @@ export default function App() {
               <WelcomeScreen />
             )}
           </RootLayout.CenterPanel>
-          <RootLayout.RightPanel1 header="Payload">
-            <MessagePayloadView message={selectedMessage} />
+          <RootLayout.RightPanel1 headerTemplate={payloadHeaderTemplate}>
+            <MessagePayloadView 
+              message={selectedMessage} 
+              onHeaderTemplate={setPayloadHeaderTemplate}
+            />
           </RootLayout.RightPanel1>
           <RootLayout.RightPanel2>
             <MessageHeadersView message={selectedMessage} />
