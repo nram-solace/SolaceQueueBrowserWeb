@@ -106,6 +106,7 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
   const [selectedQueueId, setSelectedQueueId] = useState(null);
   const [queueSearchTerm, setQueueSearchTerm] = useState('');
   const [groupBy, setGroupBy] = useState(null); // null, 'environment', 'region', or 'type'
+  const [queueFilter, setQueueFilter] = useState('all'); // 'all' or 'non-empty'
 
   const sempApi = useSempApi();
 
@@ -142,7 +143,8 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
           type: config.testResult.replay ? 'queue' : 'basic',
           toolIcon: '',
           config,
-          sourceName: queue.queueName
+          sourceName: queue.queueName,
+          msgSpoolUsage: queue.msgSpoolUsage || 0
         },
         icon: getQueueIcon(queue)
       }));
@@ -310,9 +312,10 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
 
     if (type === 'broker') {
       const loadToken = ++loadQueuesTokenRef.current;
-      // Reset selected queue and search term when switching brokers
+      // Reset selected queue, search term, and filter when switching brokers
       setSelectedQueueId(null);
       setQueueSearchTerm('');
+      setQueueFilter('all');
       
       // Clear the selected source to reset the message list when switching brokers
       onSourceSelected?.({});
@@ -519,12 +522,22 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
     }
   }, [showQueueSearch, queueSearchTerm]);
 
-  // Filter queues and topics based on search term (case-insensitive)
-  const filteredQueues = queueSearchTerm
-    ? selectedBrokerQueues.filter(queue => 
-        queue.label.toLowerCase().includes(queueSearchTerm.toLowerCase())
-      )
-    : selectedBrokerQueues;
+  // Filter queues based on search term and empty/non-empty filter
+  const filteredQueues = selectedBrokerQueues
+    .filter(queue => {
+      // Apply empty/non-empty filter
+      if (queueFilter === 'non-empty') {
+        const msgSpoolUsage = queue.data?.msgSpoolUsage ?? 0;
+        if (msgSpoolUsage === 0) {
+          return false;
+        }
+      }
+      // Apply search term filter
+      if (queueSearchTerm) {
+        return queue.label.toLowerCase().includes(queueSearchTerm.toLowerCase());
+      }
+      return true;
+    });
 
   const filteredTopics = queueSearchTerm
     ? selectedBrokerTopics.filter(topic => 
@@ -663,7 +676,24 @@ export default function TreeView({ brokers, brokerEditor, sessionManager, onSour
                     <strong>{formatBrokerLabel(selectedBroker)}</strong>
                   </div>
                   <div className={classes.queueListHeaderSubtitle}>
-                    {queueCountText(selectedBrokerQueues.length)}
+                    <div className={classes.queueFilterRow}>
+                      <span>{queueCountText(filteredQueues.length)}</span>
+                      <div className={classes.queueFilterButtons}>
+                        <button
+                          onClick={() => setQueueFilter('non-empty')}
+                          className={queueFilter === 'non-empty' ? classes.queueFilterActive : classes.queueFilterButton}
+                        >
+                          Non-Empty
+                        </button>
+                        <span className={classes.queueFilterSeparator}>|</span>
+                        <button
+                          onClick={() => setQueueFilter('all')}
+                          className={queueFilter === 'all' ? classes.queueFilterActive : classes.queueFilterButton}
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

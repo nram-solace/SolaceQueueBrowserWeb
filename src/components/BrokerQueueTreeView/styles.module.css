@@ -103,6 +103,47 @@
   line-height: 1.1;
 }
 
+.queueFilterRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.queueFilterButtons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.queueFilterButton {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--text-color-secondary);
+  font-weight: normal;
+  transition: color 0.2s;
+}
+
+.queueFilterButton:hover {
+  color: var(--text-color);
+}
+
+.queueFilterActive {
+  background: none;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.queueFilterSeparator {
+  color: var(--text-color-secondary);
+}
+
 .queueSearchContainer {
   display: flex;
   gap: 0.5rem;
